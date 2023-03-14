@@ -1,8 +1,9 @@
 numpy==1.23.3
-onnx==1.13.1
-onnxruntime==1.14.1
+cython==0.29.33
 opencv-python==4.6.0.66
 opencv-python-headless==4.7.0.72
 websocket-client==1.5.0
 websockets==10.4
+onnx==1.13.1
+onnxruntime==1.14.1
 insightface==0.7.2
