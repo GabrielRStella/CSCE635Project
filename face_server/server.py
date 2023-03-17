@@ -8,24 +8,31 @@ import json_fix                          # pip install json-fix
 from websockets import serve             # pip install websockets 
 from insightface.app import FaceAnalysis # pip install insightface onnxruntime
 from blissful_basics import singleton    # pip install blissful-basics
+from quik_config import find_and_load    # pip install quik-config
+
+# goals of this file:
+    # provide index.html to phone
+    # listen to phone input, send faces to pi
+    # listen to pi input, send emotions to phone
+
 
 # 
 # args
 # 
-parser = argparse.ArgumentParser(description="aiohttp server") 
-parser.add_argument('--server-port', default=8080)
-parser.add_argument('--socket-port', default=9093)
-parser.add_argument('--image-height', default=680)
-parser.add_argument('--image-width', default=680)
-args = parser.parse_args()
-
+info = find_and_load(
+    "config.yaml",
+    cd_to_filepath=True,
+    fully_parse_args=True,
+    defaults_for_local_data=[],
+)
+config = info.config
 
 # 
 # face 
 # 
 print("\n\nthis is going to take like 15 seconds to load\n")
 insightface_app = FaceAnalysis()
-insightface_app.prepare(ctx_id=1, det_size=(args.image_width, args.image_height))
+insightface_app.prepare(ctx_id=1, det_size=(config.image_width, config.image_height))
 print("okay loaded")
 class BoundingBox(list):
     """
@@ -92,22 +99,22 @@ class BoundingBox(list):
     
     @property
     def center(self):
-        return Position([
+        return [
             self.x_top_left + (self.width / 2),
             self.y_top_left + (self.height / 2),
-        ])
+        ]
     
     @property
     def area(self):
         return self.width * self.height
     
     def contains(self, point):
-        point = Position(point)
+        x, y = point
         return (
-            self.x_top_left     < point.x and
-            self.x_bottom_right > point.x and
-            self.y_top_left     < point.y and
-            self.y_bottom_right > point.y
+            self.x_top_left     < x and
+            self.x_bottom_right > x and
+            self.y_top_left     < y and
+            self.y_bottom_right > y
         )
         
     def __repr__(self):
@@ -212,9 +219,9 @@ async def socket_response(websocket):
 # start servers
 # 
 async def main():
-    print(f"open up http://localhost:{args.server_port}")
-    server1 = await asyncio.start_server(server_response, "localhost", args.server_port)
-    server2 = await serve(socket_response, "localhost", args.socket_port)
+    print(f"open up http://localhost:{config.base.server_port}")
+    server1 = await asyncio.start_server(server_response, "localhost", config.base.server_port)
+    server2 = await serve(socket_response, "localhost", config.base.socket_port)
     async with server1, server2:
         await asyncio.gather(server1.serve_forever(), server2.serve_forever())
 
