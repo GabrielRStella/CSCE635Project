@@ -219,9 +219,9 @@ async def socket_response(websocket):
 # start servers
 # 
 async def main():
-    print(f"open up http://localhost:{config.base.server_port}")
-    server1 = await asyncio.start_server(server_response, "localhost", config.base.server_port)
-    server2 = await serve(socket_response, "localhost", config.base.socket_port)
+    print(f"open up http://localhost:{config.desktop.server_port}")
+    server1 = await asyncio.start_server(server_response, "localhost", config.desktop.server_port)
+    server2 = await serve(socket_response, "localhost", config.desktop.socket_port)
     async with server1, server2:
         await asyncio.gather(server1.serve_forever(), server2.serve_forever())
 

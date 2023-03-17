@@ -28,7 +28,7 @@ class Brain:
 
 @singleton
 class Desktop:
-    url = f"ws://{config.base.ip_address}:{config.base.socket_port}/pi"
+    url = f"ws://{config.desktop.ip_address}:{config.desktop.socket_port}/pi"
     websocket = None
     timeout_seconds = 0.5
     

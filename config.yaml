@@ -11,7 +11,7 @@
         (default):
             image_height: 680
             image_width:  680
-            base:
+            desktop:
                 ip_address: 192.168.196.0 # FIXME
                 server_port:  8080
                 socket_port:  9093
