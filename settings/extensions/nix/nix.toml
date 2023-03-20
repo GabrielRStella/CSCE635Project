@@ -58,6 +58,9 @@ load = [ "python38Packages", "virtualenv",]
 load = [ "python38Packages", "wheel",]
 
 [[packages]]
+load = [ "python38Packages", "pyrealsense2",]
+
+[[packages]]
 load = [ "cmake",]
 
 [[packages]]
