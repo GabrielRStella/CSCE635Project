@@ -49,7 +49,7 @@ class Motor:
         else:
             self.speed_pin.write(self.spd)
             self.forward_pin.write(self.direction)
-            self.forward_pin.write(1 - self.direction)
+            self.backward_pin.write(1 - self.direction)
 
 import pyfirmata
 import time
