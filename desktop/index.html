@@ -168,13 +168,8 @@
                         if (ipaddr == "localhost") {
                             ipaddr = "127.0.0.1"
                         }
-                        // if (ipaddr == "127.0.0.1") {
-                        //     window.alert(`Note: your connection should be something other than localhost (aka 127.0.0.1).\n\nI'll still let you try with localhost but just note that the public facing address should be used instead.`)
-                        // }
                     }
-                    var portVal = port.value
-                    const baseValue = ipaddr + ":" + portVal
-                    const url = "ws://" + baseValue
+                    const url = `ws://${ipaddr}:${port.value}/phone`
                     console.log("Attempting to connect to: " + url)
                     
                     // 

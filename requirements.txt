@@ -1,0 +1,6 @@
+numpy==1.23.3
+websocket-client==1.5.0
+websockets==10.4
+blissful-basics==0.2.20
+json-fix==0.5.1
+quik-config==1.7.0

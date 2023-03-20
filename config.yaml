@@ -1,0 +1,23 @@
+# NOTE: names in parentheses are special, all other names are not!
+(project):
+    
+    # a central place for filepaths
+    (path_to):
+        this_file:       "./info.yaml"
+    
+    (local_data): ./local_data.ignore.yaml
+    
+    (profiles):
+        (default):
+            image_height: 680
+            image_width:  680
+            desktop:
+                ip_address: 192.168.196.0 # FIXME
+                server_port:  8080
+                socket_port:  9093
+        
+        PROFILE1:
+            constants:
+                pi: 3.1415926536
+                e: 2.7182818285
+        

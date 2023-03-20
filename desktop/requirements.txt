@@ -4,6 +4,7 @@ opencv-python==4.6.0.66
 opencv-python-headless==4.7.0.72
 websocket-client==1.5.0
 websockets==10.4
-onnx==1.13.1
-onnxruntime==1.14.1
 insightface==0.7.2
+blissful-basics==0.2.20
+json-fix==0.5.1
+quik-config==1.7.0
