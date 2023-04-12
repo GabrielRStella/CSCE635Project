@@ -1,14 +1,16 @@
 extends CharacterBody2D
 
 
-const MOVE_SPEED = 60.0
-const TURN_SPEED = 8.0
+const MOVE_SPEED = 80.0
+const TURN_SPEED = 5.0
 
 #ray scanning
 const FOV = 30 #degrees to either side
 const N_RAYS = 100
 const RAY_RANGE = 160
 const BACKUP_RANGE = 60 #if something is this close, the robot backs up
+#static rotation behavior
+var time_rotating = 0 #dt remaining until it returns to nav
 
 var raycasts = [] #stores last measured distance, for drawing
 var vel = Vector2.ZERO
@@ -20,12 +22,6 @@ var rands = []
 var d_rands = [] #derivs
 var rand_min = 0.7
 var rand_max = 1.0
-
-#keep track of oscillations;
-#if it starts oscillating,
-#execute "turn" behavior for random amt of time
-var prev_rotation_sign = 0
-var rotation_oscillation = 0
 
 func _init():
 	#initialize raycasts array
@@ -50,7 +46,7 @@ func get_modulation(i):
 	var j = lerp(0, N_RANDS - 1, float(i) / (N_RAYS - 1))
 	return lerp(rands[floor(j)], rands[ceil(j)], fposmod(j, 1))
 	
-func _physics_process(delta):
+func behavior_nav(delta):
 	var rng = RandomNumberGenerator.new()
 	#update random modulation
 	for i in range(N_RANDS):
@@ -84,12 +80,11 @@ func _physics_process(delta):
 		movement_direction += ray
 	#
 	movement_direction = movement_direction / N_RAYS
-	print(movement_direction.length())
 	if(movement_direction.length() < 0.1):
-		print("?")
-		rotate(rng.randf() * PI * 2)
+		var rand_rot = rng.randf_range(-PI, PI)
+		time_rotating += rand_rot / TURN_SPEED
 	#
-#	movement_direction = movement_direction.normalized()
+	movement_direction = movement_direction.normalized()
 
 	#determine overall direction
 	#(go towards max dist)
@@ -102,29 +97,34 @@ func _physics_process(delta):
 	rot = atan2(movement_direction.y, movement_direction.x) * TURN_SPEED
 	var rotation_rate = rot * delta
 	rotate(rotation_rate)
-	#keep track of rotation oscillations; if they persist, enter "turn" mode
-	var rotation_sign = sign(rotation_rate)
-	var is_oscillation = rotation_sign != prev_rotation_sign
-	prev_rotation_sign = rotation_sign
-	if(is_oscillation):
-		rotation_oscillation += delta
-	else:
-		rotation_oscillation *= pow(0.1, delta) #decay by 90% every second
-	if(rotation_oscillation > 0.2):
-		print("aaaa")
-		rotate(rng.randf() * PI * 2)
-		rotation_oscillation = 0
-#	print(rotation_oscillation)
 	
 	vel = Vector2(movement_direction.x * MOVE_SPEED, 0)
 	var new_vel = vel.rotated(rotation)
 	velocity = new_vel
 	move_and_slide()
+
+func behavior_rotate(delta):
+	rot = TURN_SPEED * sign(time_rotating)
+	var rotation_rate = rot * delta
+	rotate(rotation_rate)
+	#
+	if(time_rotating < 0):
+		time_rotating = min(time_rotating + delta, 0)
+	else:
+		time_rotating = max(time_rotating - delta, 0)
+	
+func _physics_process(delta):
+	if(time_rotating != 0):
+		behavior_rotate(delta)
+	else:
+		behavior_nav(delta)
 	
 func _process(_delta):
 	queue_redraw()
 	
 func _draw():
+	if(time_rotating != 0):
+		return
 	for i in range(N_RAYS):
 		var angle = deg_to_rad(lerp(-FOV, FOV, float(i) / (N_RAYS - 1)))
 		var dist = raycasts[i]
