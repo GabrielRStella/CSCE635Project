@@ -1,0 +1,11 @@
+[gd_scene load_steps=3 format=3 uid="uid://ovb6cs3qhobo"]
+
+[ext_resource type="PackedScene" uid="uid://uwo0jmdnfagv" path="res://world.tscn" id="1_ufbxl"]
+[ext_resource type="PackedScene" uid="uid://c270ijkc1he32" path="res://bumpo.tscn" id="2_vis14"]
+
+[node name="Game" type="Node2D"]
+
+[node name="World" parent="." instance=ExtResource("1_ufbxl")]
+
+[node name="Bumpo" parent="." instance=ExtResource("2_vis14")]
+position = Vector2(52, 64)

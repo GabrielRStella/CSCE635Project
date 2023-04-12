@@ -1,0 +1,21 @@
+[gd_scene load_steps=4 format=3 uid="uid://c270ijkc1he32"]
+
+[ext_resource type="Script" path="res://Bumpo.gd" id="1_53vsu"]
+[ext_resource type="Texture2D" uid="uid://vx1xo0rl0gsa" path="res://icon.svg" id="2_rnfq2"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_b7otc"]
+
+[node name="Bumpo" type="CharacterBody2D"]
+collision_layer = 2
+script = ExtResource("1_53vsu")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+scale = Vector2(0.155, 0.155)
+texture = ExtResource("2_rnfq2")
+
+[node name="Body" type="CollisionShape2D" parent="."]
+shape = SubResource("RectangleShape2D_b7otc")
+
+[node name="Camera2D" type="Camera2D" parent="."]
+
+[node name="RayCast" type="RayCast2D" parent="."]

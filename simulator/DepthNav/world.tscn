@@ -1,0 +1,236 @@
+[gd_scene load_steps=2 format=3 uid="uid://uwo0jmdnfagv"]
+
+[ext_resource type="PackedScene" uid="uid://d1r2aqwmbcp4t" path="res://box.tscn" id="1_rhct3"]
+
+[node name="World" type="Node2D"]
+
+[node name="Box" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(-65, -5)
+
+[node name="Box2" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(-63, -53)
+
+[node name="Box3" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(-61, -96)
+
+[node name="Box4" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(-60, -136)
+
+[node name="Box5" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(-51, -178)
+
+[node name="Box6" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(100, -4)
+
+[node name="Box7" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(101, -49)
+
+[node name="Box8" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(104, -93)
+
+[node name="Box9" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(106, -246)
+
+[node name="Box20" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(155, -244)
+
+[node name="Box21" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(203, -245)
+
+[node name="Box22" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(246, -221)
+
+[node name="Box23" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(293, -185)
+
+[node name="Box24" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(294, -140)
+
+[node name="Box25" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(295, -93)
+
+[node name="Box26" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(297, -48)
+
+[node name="Box27" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(295, 0)
+
+[node name="Box28" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(298, 47)
+
+[node name="Box29" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(299, 93)
+
+[node name="Box43" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(278, 121)
+rotation = 0.785398
+
+[node name="Box30" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(263, 143)
+
+[node name="Box31" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(217, 145)
+
+[node name="Box32" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(-87, 257)
+
+[node name="Box33" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(-134, 257)
+
+[node name="Box34" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(-181, 257)
+
+[node name="Box35" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(-229, 256)
+
+[node name="Box37" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(-258, 124)
+
+[node name="Box38" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(-67, 42)
+
+[node name="Box39" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(-109, -77)
+
+[node name="Box66" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(-154, -79)
+
+[node name="Box67" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(-201, -78)
+
+[node name="Box73" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(-262, 80)
+
+[node name="Box74" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(-305, 60)
+
+[node name="Box75" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(-350, 26)
+
+[node name="Box76" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(-352, -8)
+
+[node name="Box77" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(-350, -56)
+
+[node name="Box40" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(-82, 315)
+
+[node name="Box42" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(-80, 267)
+
+[node name="Box44" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(-255, 214)
+
+[node name="Box45" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(-256, 167)
+
+[node name="Box46" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(72, 329)
+
+[node name="Box47" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(90, 233)
+
+[node name="Box48" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(160, 296)
+
+[node name="Box49" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(277, 180)
+
+[node name="Box50" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(278, 227)
+
+[node name="Box51" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(280, 272)
+
+[node name="Box52" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(279, 320)
+
+[node name="Box53" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(281, 367)
+
+[node name="Box54" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(282, 413)
+
+[node name="Box55" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(261, 441)
+rotation = 0.785398
+
+[node name="Box56" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(246, 463)
+
+[node name="Box57" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(200, 465)
+
+[node name="Box58" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(152, 464)
+
+[node name="Box59" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(105, 464)
+
+[node name="Box60" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(58, 464)
+
+[node name="Box61" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(10, 463)
+
+[node name="Box62" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(-30, 463)
+
+[node name="Box63" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(-75, 426)
+
+[node name="Box64" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(-84, 381)
+
+[node name="Box65" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(-84, 343)
+
+[node name="Box10" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(106, -293)
+
+[node name="Box11" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(102, -339)
+
+[node name="Box12" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(58, -386)
+
+[node name="Box13" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(9, -387)
+
+[node name="Box14" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(-41, -385)
+
+[node name="Box15" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(-88, -386)
+
+[node name="Box41" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(81, -372)
+rotation = 0.785398
+
+[node name="Box16" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(-122, -343)
+
+[node name="Box17" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(-124, -302)
+
+[node name="Box18" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(-303, -223)
+
+[node name="Box70" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(-346, -187)
+
+[node name="Box71" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(-347, -148)
+
+[node name="Box72" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(-348, -106)
+
+[node name="Box19" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(-173, -273)
+
+[node name="Box68" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(-220, -255)
+
+[node name="Box69" parent="." instance=ExtResource("1_rhct3")]
+position = Vector2(-260, -239)
