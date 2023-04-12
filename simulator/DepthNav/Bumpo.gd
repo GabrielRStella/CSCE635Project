@@ -46,7 +46,7 @@ func argmax(xs):
 	return arg
 
 func get_modulation(i):
-	return 1
+#	return 1
 	var j = lerp(0, N_RANDS - 1, float(i) / (N_RAYS - 1))
 	return lerp(rands[floor(j)], rands[ceil(j)], fposmod(j, 1))
 	
@@ -76,20 +76,20 @@ func _physics_process(delta):
 		#weighted by cos of angle and some randomness
 		var length = hit_dist * get_modulation(i) - BACKUP_RANGE
 		if(length > 0):
-			length = length / (hit_dist - BACKUP_RANGE)
+			length = length / (RAY_RANGE - BACKUP_RANGE)
 		else:
 			length = length / BACKUP_RANGE
-		ray = ray.normalized() # * length * abs(sin(i))
-		#squish
-		ray.x *= length
-		ray.y *= sign(length)
-		if(length > 0):
-			ray.y *= pow(length, 2)
-		#
+		ray = ray.normalized() * length * cos(angle)
+#		#
 		movement_direction += ray
 	#
-#	movement_direction = movement_direction / N_RAYS
-	movement_direction = movement_direction.normalized()
+	movement_direction = movement_direction / N_RAYS
+	print(movement_direction.length())
+	if(movement_direction.length() < 0.1):
+		print("?")
+		rotate(rng.randf() * PI * 2)
+	#
+#	movement_direction = movement_direction.normalized()
 
 	#determine overall direction
 	#(go towards max dist)
@@ -114,7 +114,7 @@ func _physics_process(delta):
 		print("aaaa")
 		rotate(rng.randf() * PI * 2)
 		rotation_oscillation = 0
-	print(rotation_oscillation)
+#	print(rotation_oscillation)
 	
 	vel = Vector2(movement_direction.x * MOVE_SPEED, 0)
 	var new_vel = vel.rotated(rotation)
