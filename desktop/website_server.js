@@ -8,9 +8,23 @@ import { FileSystem } from "https://deno.land/x/quickr@0.6.20/main/file_system.j
 import { run, Stderr, Stdout } from "https://deno.land/x/quickr@0.6.20/main/run.js"
 import * as yaml from "https://deno.land/std@0.168.0/encoding/yaml.ts"
 import archy from "https://deno.land/x/archaeopteryx@1.0.4/mod.ts"
+import { Console, clearAnsiStylesFrom, black, white, red, green, blue, yellow, cyan, magenta, lightBlack, lightWhite, lightRed, lightGreen, lightBlue, lightYellow, lightMagenta, lightCyan, blackBackground, whiteBackground, redBackground, greenBackground, blueBackground, yellowBackground, magentaBackground, cyanBackground, lightBlackBackground, lightRedBackground, lightGreenBackground, lightYellowBackground, lightBlueBackground, lightMagentaBackground, lightCyanBackground, lightWhiteBackground, bold, reset, dim, italic, underline, inverse, strikethrough, gray, grey, lightGray, lightGrey, grayBackground, greyBackground, lightGrayBackground, lightGreyBackground, } from "https://deno.land/x/quickr@0.6.21/main/console.js"
 
 const pathToProject = await FileSystem.walkUpUntil("config.yaml")
 const pathToConfig = `${pathToProject}/config.yaml`
+
+console.log("Here are your IP addresses\n")
+const chosenAddress = Console.askFor.oneOf(
+    Deno.networkInterfaces().filter((each)=>each.family=="IPv4").map((each)=>each.address),
+    "pick one and I'll update the config: "
+)
+
+let configContents = await FileSystem.read(pathToConfig)
+configContents = configContents.replace(/: .+# UNIQUE_ID_fo4i3jf84309583/, `: ${chosenAddress} # UNIQUE_ID_fo4i3jf84309583`)
+await FileSystem.write({
+    path: pathToConfig,
+    data: configContents,
+})
 
 var server = null
 var prevConfig = null

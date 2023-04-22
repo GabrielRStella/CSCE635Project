@@ -15,6 +15,6 @@
             image_height: 480
             image_width:  640
             desktop:
-                ip_address: 192.168.192.182 # FIXME
+                ip_address: 192.168.192.182 # UNIQUE_ID_fo4i3jf84309583
                 file_server_port: 7071
                 web_socket_port:  9093
