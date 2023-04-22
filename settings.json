@@ -9,6 +9,9 @@
         "elegant_events": {
             "path": "__sources__/elegant_events/main/elegant_events"
         },
+        "quik_config": {
+            "path": "__sources__/quik_config/main/quik_config"
+        },
         "json_fix": {
             "path": "__sources__/json_fix/main/json_fix"
         }

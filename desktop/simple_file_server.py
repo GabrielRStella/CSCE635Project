@@ -24,8 +24,11 @@ config = info.config
 # 
 # html setup
 # 
-with open(info.path_to.face_html,'rb') as f:
+with open(info.path_to.face_html,'r') as f:
     html_file_content = f.read()
+    html_file_content = html_file_content.replace("null/*UNQUE_ID_191093889137898240_address*/",f"'{config.desktop.ip_address}'")
+    html_file_content = html_file_content.replace("null/*UNQUE_ID_19827378957898240_port*/",f"{config.desktop.web_socket_port}")
+    html_file_content = html_file_content.encode('utf-8')
 async def server_response(reader, writer): 
     writer.write("HTTP/1.1 200 OK\n".encode('utf-8'))
     writer.write("Content-Type: text/html; charset=utf-8\n".encode('utf-8'))

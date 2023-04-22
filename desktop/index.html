@@ -15767,7 +15767,7 @@
                 var portInput
                 var connectButton
                 if (parameters.port != null && parameters.address != null) {
-                    sendMessage(`connecting to wss://${ipAddress}:${port}, no interface needed`)
+                    sendMessage(`connecting to wss://${parameters.address}:${parameters.port}, no interface needed`)
                     connectionIsEmbedded = true
                 }
                 
