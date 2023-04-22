@@ -15500,8 +15500,8 @@
             // 
             // 
             const parameters = {
-                address: null/*UNQUE_ID_191093889137898240_address*/,
-                port: null/*UNQUE_ID_19827378957898240_port*/,
+                address: "192.168.192.182"/*UNQUE_ID_191093889137898240_address*/,
+                port: 9093/*UNQUE_ID_19827378957898240_port*/,
                 defaultPort: 9093,
                 audioBufferSize: 2048,
                 videoWidth: 640,
@@ -15768,7 +15768,7 @@
                         }
 
                         const baseValue = `${ipAddress}:${port}`
-                        const url = `ws://${ipAddress}:${port}`
+                        const url = `wss://${ipAddress}:${port}`
                         console.log(`Attempting to connect to: ${url}`)
 
                         // 

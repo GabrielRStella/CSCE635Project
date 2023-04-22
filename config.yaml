@@ -5,6 +5,8 @@
     (path_to):
         this_file: "./info.yaml"
         face_html: desktop/index.html
+        file_server_public_key: desktop/cert.pem
+        file_server_private_key: desktop/key.pem
     
     (local_data): ./local_data.ignore.yaml
     
@@ -16,9 +18,3 @@
                 ip_address: 192.168.192.182 # FIXME
                 file_server_port: 7071
                 web_socket_port:  9093
-        
-        PROFILE1:
-            constants:
-                pi: 3.1415926536
-                e: 2.7182818285
-        
