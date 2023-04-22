@@ -34,10 +34,6 @@ config = info.config
 # 
 # face 
 # 
-print("\n\nthis is going to take like 15 seconds to load\n")
-insightface_app = FaceAnalysis()
-insightface_app.prepare(ctx_id=1, det_size=(config.image_width, config.image_height))
-print("okay loaded face")
 class BoundingBox(list):
     """
     x_top_left, y_top_left, width, height format
