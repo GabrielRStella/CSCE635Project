@@ -123,7 +123,7 @@ class BoundingBox(list):
 class Face:
     _model_loaded = False
     insightface_app = None
-    def __init__(self, insight_face, image):
+    def __init__(self, image, insight_face):
         self.image = image
         self.insight = insight_face
         image_height, image_width, *channels = self.image.shape
@@ -147,9 +147,10 @@ class Face:
             print("\n\nthis is going to take like 15 seconds to load\n")
             Face.insightface_app = FaceAnalysis()
             Face.insightface_app.prepare(ctx_id=1, det_size=(config.image_width, config.image_height))
+            Face._model_loaded = True
             print("okay loaded face model")
         
-        return [ Face(each) for each in Face.insightface_app.get(image) ]
+        return [ Face(image, insight_face=each) for each in Face.insightface_app.get(image) ]
     
     @property
     def bounding_box(self):
@@ -199,20 +200,23 @@ class Phone:
     websocket = None
 
 async def socket_response(websocket):
-    if websocket.path == 'pi':
+    if websocket.path == '/pi':
         Pi.websocket = websocket
         async for message in websocket: # message is a string sent from the webpage
             # forward emotion message to phone
             if Phone.websocket:
                 Phone.websocket.send(message)
-    elif websocket.path == "phone":
+    elif websocket.path == "/phone":
         Phone.websocket = websocket
         async for message in websocket: # message is a string sent from the webpage
             img = cv2.imdecode(numpy.frombuffer(base64.b64decode(message.encode('utf-8')), numpy.uint8), 1)
             height, width, *channels = img.shape
-            faces = get_faces(img)
+            faces = Face.get_faces(img)
+            print(f'''faces = {faces}''')
             if Pi.websocket:
                 Pi.send(json.dumps(faces))
+    else:
+        print(f'''websocket.path = {websocket.path}''')
 
 # 
 # start servers

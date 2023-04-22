@@ -12,8 +12,8 @@
     
     (profiles):
         (default):
-            image_height: 680
-            image_width:  680
+            image_height: 480
+            image_width:  640
             desktop:
                 ip_address: 192.168.192.182 # FIXME
                 file_server_port: 7071

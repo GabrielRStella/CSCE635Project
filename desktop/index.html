@@ -15504,7 +15504,7 @@
                 defaultPort: 9093,
                 audioBufferSize: 2048,
                 videoWidth: 640,
-                frameSendRate: 200, // every x miliseconds
+                frameSendRate: 1000, // every x miliseconds
             }
             const rosTopics = {
                 audioTopic: null,
@@ -15716,7 +15716,13 @@
                         WebsocketConnecter.websocket.send(canvas.toDataURL("image/png").replace(/^data:image\/png;base64,/, ""))
                     }
                 }
-
+                
+                setTimeout(() => {
+                    if (WebsocketConnecter.connectionIsEmbedded) {
+                        CameraSwitch.switchInput.click()
+                    }
+                }, 100)
+                
                 return html`
                     <div class="switch"
                         style="margin-bottom: 2rem; width: 100%; display: flex; justify-content: space-between; align-items: center;">
@@ -15735,22 +15741,18 @@
             // Singleton component
             function WebsocketConnecter() {
                 WebsocketConnecter.websocket = null
-                var connectionIsEmbedded = false
+                WebsocketConnecter.connectionIsEmbedded = parameters.port != null && parameters.address != null
                 var ipAddressInput
                 var portInput
                 var connectButton
-                if (parameters.port != null && parameters.address != null) {
-                    sendMessage(`connecting to wss://${parameters.address}:${parameters.port}, no interface needed`)
-                    connectionIsEmbedded = true
-                }
                 
                 WebsocketConnecter.setupIfNeeded = function () {
                     if (!WebsocketConnecter.websocketIsSetup) {
                         // 
                         // create websocket URL
                         // 
-                        let ipAddress = connectionIsEmbedded ? parameters.address : ipAddressInput.value
-                        let port = connectionIsEmbedded ? parameters.port : portInput.value
+                        let ipAddress = WebsocketConnecter.connectionIsEmbedded ? parameters.address : ipAddressInput.value
+                        let port = WebsocketConnecter.connectionIsEmbedded ? parameters.port : portInput.value
 
                         // 
                         // check ipAddress
@@ -15767,7 +15769,7 @@
                         }
 
                         const baseValue = `${ipAddress}:${port}`
-                        const url = `wss://${ipAddress}:${port}`
+                        const url = `wss://${ipAddress}:${port}/phone`
                         console.log(`Attempting to connect to: ${url}`)
 
                         // 
@@ -15778,8 +15780,8 @@
                         afterWebsocketConnected()
                     }
                 }
-
-                if (connectionIsEmbedded) {
+                
+                if (WebsocketConnecter.connectionIsEmbedded) {
                     return html`<div></div>`
                 } else {
                     var ipAddressInput = html`<input type="text" placeholder="IP Address" value=${"" + window.location.hostname} />`

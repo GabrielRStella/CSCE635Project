@@ -57,6 +57,8 @@ async function loadConfig() {
                 /:.+?\/\*UNQUE_ID_19827378957898240_port\*\//, `: ${JSON.stringify(config.desktop.web_socket_port)}/*UNQUE_ID_19827378957898240_port*/`
             )
     })
+
+    // run`python ${pathToProject}`
 }
 
 // load at the begining and every time something changes
