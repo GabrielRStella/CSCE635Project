@@ -15515,7 +15515,6 @@
             var { Column, Row } = await import("https://deno.land/x/good_component@0.1.4/elements.js")
             var { stringToBytes } = await import("https://deno.land/x/binaryify@0.0.7/tools.js")
             var { html } = await import("https://deno.land/x/elementalist@0.5.29/main/deno.js?code")
-            var websocket
 
             // 
             // Custom elements
@@ -15569,8 +15568,13 @@
             // Events
             // 
             // 
-            async function afterWebsocketConnected(ros) {
-                socket.addEventListener('message', (message) => {
+            async function afterWebsocketConnected() {
+                console.log("websocket connected")
+                WebsocketConnecter.websocket.addEventListener('error', (error)=>{
+                    console.error(error)
+                })
+                
+                WebsocketConnecter.websocket.addEventListener('message', (message) => {
                     let data
                     try {
                         data = JSON.parse(message.data)
@@ -15630,7 +15634,7 @@
 
             // Singleton component
             function CameraSwitch() {
-                const switchInput = html`<input type="checkbox" value="">`
+                CameraSwitch.switchInput = html`<input type="checkbox" value="">`
                 const video = html`<video muted style="display: none" autoplay></video>`
                 const canvas = html`<canvas style="display: none"></canvas>`
 
@@ -15653,67 +15657,46 @@
 
                 let cameraTimer = null
                 let cameraStream = null
-                switchInput.addEventListener(
+                CameraSwitch.turnOff = async ()=>{
+                    hasRunOnce = false
+                    cameraTimer = null
+                    cameraStream.stop()
+                    clearInterval(cameraTimer)
+                }
+                CameraSwitch.turnOn = async ()=>{
+                    WebsocketConnecter.setupIfNeeded()
+        
+                    if (!navigator.mediaDevices) {
+                        sendMessage(`Error: check the URL<br>Make sure it has "https" and not "http"`)
+                    } else {
+                        try {
+                            cameraStream = await navigator.mediaDevices.getUserMedia({
+                                video: true,
+                                audio: true,
+                            })
+                            video.srcObject = cameraStream
+                            video.play()
+                            video.onloadedmetadata = (event) => {
+                                height = video.videoHeight / (video.videoWidth / parameters.videoWidth)
+                                video.setAttribute("width", parameters.videoWidth)
+                                video.setAttribute("height", height)
+                                canvas.setAttribute("width", parameters.videoWidth)
+                                canvas.setAttribute("height", height)
+                            }
+                        } catch (error) {
+                            sendMessage(`Looks like there was an issue connecting to the camera. Make sure this browser can actually connect to your camera (for example try logging into Zoom and using "Your Room" and try turning on the camera)`)
+                            throw error
+                        }
+                    }
+                    cameraTimer = setInterval(() => takePicture(), parameters.frameSendRate)
+                }
+                CameraSwitch.switchInput.addEventListener(
                     "click",
                     async (event) => {
-                        if (cameraTimer == null) {
-                            // ros.connect("ws://" + window.location.hostname + ":9090");
-                            WebsocketConnecter.setupWebsocketIfNeeded()
-
-                            if (!navigator.mediaDevices) {
-                                sendMessage(`Error: check the URL<br>Make sure it has "https" and not "http"`)
-                            } else {
-                                try {
-                                    cameraStream = await navigator.mediaDevices.getUserMedia({
-                                        video: true,
-                                        audio: true,
-                                    })
-                                    video.srcObject = cameraStream
-                                    video.play()
-                                    video.onloadedmetadata = (event) => {
-                                        height = video.videoHeight / (video.videoWidth / parameters.videoWidth)
-                                        video.setAttribute("width", parameters.videoWidth)
-                                        video.setAttribute("height", height)
-                                        canvas.setAttribute("width", parameters.videoWidth)
-                                        canvas.setAttribute("height", height)
-                                    }
-                                } catch (error) {
-                                    sendMessage(`Looks like there was an issue connecting to the camera. Make sure this browser can actually connect to your camera (for example try logging into Zoom and using "Your Room" and try turning on the camera)`)
-                                    throw error
-                                }
-
-                                try {
-                                    const audioCtx = new (window.AudioContext || window.webkitAudioContext)()
-                                    const source = audioCtx.createMediaStreamSource(cameraStream)
-                                    const recorder = audioCtx.createScriptProcessor(parameters.audioBufferSize, 1, 1)
-
-                                    recorder.onaudioprocess = (event) => {
-                                        rosTopics.audioTopic.publish(
-                                            new ROSLIB.Message({
-                                                data: Array.from(
-                                                    new Float32Array(
-                                                        event.inputBuffer.getChannelData(0)
-                                                    )
-                                                ),
-                                            })
-                                        )
-                                    }
-
-                                    // source.connect(recorder)
-                                    // recorder.connect(audioCtx.destination)
-                                } catch (error) {
-                                    sendMessage(`Looks like there was an issue connecting to the microphone. Make sure this browser can actually connect to your camera (for example try logging into Zoom and using "Your Room" and try turning on the camera)`)
-                                    throw error
-                                }
-                            }
-                            cameraTimer = setInterval(() => takePicture(), parameters.frameSendRate)
+                        if (event.target.checked) {
+                            CameraSwitch.turnOn()
                         } else {
-                            ros.close()
-                            cameraStream.stop()
-                            hasRunOnce = false
-                            takePicture() // blank the screen to prevent last image from staying
-                            clearInterval(cameraTimer)
-                            cameraTimer = null
+                            CameraSwitch.turnOff()
                         }
                     },
                     false
@@ -15722,26 +15705,16 @@
                 // function that is run by trigger several times a second
                 // takes snapshot of video to canvas, encodes the images as base 64 and sends it to the ROS topic
                 function takePicture() {
-                    if (!rosTopics.imageTopic) {
-                        if (WebsocketConnecter.websocketIsSetup) {
-                            sendMessage("Trying to take a picture but rosTopics.imageTopic is null")
-                        }
+                    if (!WebsocketConnecter.websocket) {
+                        // sendMessage("Trying to take a picture but theres no websocket")
                     } else {
                         // sendMessage("Trying to take a picture")
                         canvas.width = parameters.videoWidth
-                        canvas.height = height
+                        // canvas.height = parameters. height
 
                         canvas.getContext("2d").drawImage(video, 0, 0, canvas.width, canvas.height)
 
-                        var data = canvas.toDataURL("image/jpeg")
-                        var a = document.createElement("a")
-                        a.href = data
-                        var imageMessage = new ROSLIB.Message({
-                            format: "jpeg",
-                            data: data.replace("data:image/jpeg;base64,", ""),
-                        })
-
-                        rosTopics.imageTopic.publish(imageMessage)
+                        WebsocketConnecter.websocket.send(canvas.toDataURL("image/png").replace(/^data:image\/png;base64,/, ""))
                     }
                 }
 
@@ -15753,7 +15726,7 @@
                         </h5>
                         ${video}
                         <label>
-                            ${switchInput}
+                            ${CameraSwitch.switchInput}
                             <span class="lever"></span>
                         </label>
                     </div>
@@ -15762,6 +15735,7 @@
 
             // Singleton component
             function WebsocketConnecter() {
+                WebsocketConnecter.websocket = null
                 var connectionIsEmbedded = false
                 var ipAddressInput
                 var portInput
@@ -15771,7 +15745,7 @@
                     connectionIsEmbedded = true
                 }
                 
-                WebsocketConnecter.setupWebsocketIfNeeded = function () {
+                WebsocketConnecter.setupIfNeeded = function () {
                     if (!WebsocketConnecter.websocketIsSetup) {
                         // 
                         // create websocket URL
@@ -15794,13 +15768,14 @@
                         }
 
                         const baseValue = `${ipAddress}:${port}`
-                        const url = `wss://${ipAddress}:${port}`
+                        const url = `ws://${ipAddress}:${port}`
                         console.log(`Attempting to connect to: ${url}`)
 
                         // 
                         // connect
                         // 
-                        websocket = new WebSocket(url)
+                        WebsocketConnecter.websocket = new WebSocket(url)
+                        WebsocketConnecter.websocketIsSetup = true
                         afterWebsocketConnected()
                     }
                 }
@@ -15812,11 +15787,11 @@
                     var portInput      = html`<input type="text" placeholder="Port" value="${parameters.defaultPort}" />`
                     var connectButton  = html`
                         <button class="btn-large waves-effect waves-light" style="margin-top: 1rem; z-index: 999;">
-                            Connect to ROSbridge Server
+                            Connect to Websocket Server
                         </button>
                     `
                     connectButton.addEventListener("click", (event) => {
-                        WebsocketConnecter.setupWebsocketIfNeeded()
+                        WebsocketConnecter.setupIfNeeded()
                     })
                     return html`
                         <div>

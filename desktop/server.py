@@ -12,13 +12,12 @@ from insightface.app import FaceAnalysis # pip install insightface onnxruntime
 from __dependencies__ import json_fix
 from __dependencies__.websockets import serve
 from __dependencies__.blissful_basics import singleton
-from quik_config import find_and_load    # pip install quik-config
+from __dependencies__.quik_config import find_and_load
 
 # goals of this file:
     # provide index.html to phone
     # listen to phone input, send faces to pi
     # listen to pi input, send emotions to phone
-
 
 # 
 # args
@@ -37,7 +36,7 @@ config = info.config
 print("\n\nthis is going to take like 15 seconds to load\n")
 insightface_app = FaceAnalysis()
 insightface_app.prepare(ctx_id=1, det_size=(config.image_width, config.image_height))
-print("okay loaded")
+print("okay loaded face")
 class BoundingBox(list):
     """
     x_top_left, y_top_left, width, height format
@@ -182,8 +181,11 @@ class Face:
 # 
 # html setup
 # 
-with open(info.path_to.face_html,'rb') as f:
+with open(info.path_to.face_html,'r') as f:
     html_file_content = f.read()
+    html_file_content = html_file_content.replace("null/*UNQUE_ID_191093889137898240_address*/",f"'{config.desktop.ip_address}'")
+    html_file_content = html_file_content.replace("null/*UNQUE_ID_19827378957898240_port*/",f"{config.desktop.web_socket_port}")
+    html_file_content = html_file_content.encode('utf-8')
 async def server_response(reader, writer): 
     writer.write("HTTP/1.1 200 OK\n".encode('utf-8'))
     writer.write("Content-Type: text/html; charset=utf-8\n".encode('utf-8'))
@@ -223,10 +225,17 @@ async def socket_response(websocket):
 # start servers
 # 
 async def main():
-    print(f"open up http://localhost:{config.desktop.server_port}")
-    server1 = await asyncio.start_server(server_response, "localhost", config.desktop.server_port)
-    server2 = await serve(socket_response, "localhost", config.desktop.socket_port)
-    async with server1, server2:
-        await asyncio.gather(server1.serve_forever(), server2.serve_forever())
+    # print(f"open up http://localhost:{config.desktop.file_server_port}")
+    # server1 = await asyncio.start_server(server_response, "localhost", config.desktop.file_server_port)
+    server2 = await serve(socket_response, config.desktop.ip_address, config.desktop.web_socket_port)
+    async with (
+        # server1,
+        server2,
+    ):
+        print(f"socket now available: wss://{config.desktop.ip_address}:{config.desktop.web_socket_port}")
+        await asyncio.gather(
+            # server1.serve_forever(),
+            server2.serve_forever()
+        )
 
 asyncio.run(main())

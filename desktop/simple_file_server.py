@@ -37,8 +37,8 @@ async def server_response(reader, writer):
     await writer.drain()
 
 async def main():
-    print(f"open up http://localhost:{config.desktop.file_server_port}")
-    server1 = await asyncio.start_server(server_response, "localhost", config.desktop.file_server_port)
+    print(f"open up http://{config.desktop.ip_address}:{config.desktop.file_server_port}")
+    server1 = await asyncio.start_server(server_response, config.desktop.ip_address, config.desktop.file_server_port)
     await server1.serve_forever()
 
 asyncio.run(main())
