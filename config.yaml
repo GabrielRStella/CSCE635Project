@@ -3,7 +3,8 @@
     
     # a central place for filepaths
     (path_to):
-        this_file:       "./info.yaml"
+        this_file: "./info.yaml"
+        face_html: desktop/index.html
     
     (local_data): ./local_data.ignore.yaml
     

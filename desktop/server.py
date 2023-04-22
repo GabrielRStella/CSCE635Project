@@ -1,12 +1,16 @@
+import sys
+import os
 import asyncio
 import argparse 
 import base64
 
+sys.path.append(os.path.join(os.path.dirname(__file__), '..')) # add root of project to path
+
 import numpy                             # pip install numpy
 import cv2                               # pip install opencv-python
-import json_fix                          # pip install json-fix
-from websockets import serve             # pip install websockets 
 from insightface.app import FaceAnalysis # pip install insightface onnxruntime
+from __dependencies__ import json_fix
+from __dependencies__.websockets import serve
 from blissful_basics import singleton    # pip install blissful-basics
 from quik_config import find_and_load    # pip install quik-config
 
@@ -178,7 +182,7 @@ class Face:
 # 
 # html setup
 # 
-with open('index.html','rb') as f:
+with open(info.path_to.face_html,'rb') as f:
     html_file_content = f.read()
 async def server_response(reader, writer): 
     writer.write("HTTP/1.1 200 OK\n".encode('utf-8'))
