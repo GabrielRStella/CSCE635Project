@@ -15,9 +15,3 @@
                 ip_address: 192.168.196.0 # FIXME
                 server_port:  8080
                 socket_port:  9093
-        
-        PROFILE1:
-            constants:
-                pi: 3.1415926536
-                e: 2.7182818285
-        
