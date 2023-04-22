@@ -427,18 +427,83 @@ class GenericBehaviorSeq(object):
 #types of behaviors
 ###############################################################################
 
+#Move: depth-based navigation
+#also needs the turn-around-when-stuck behavior to be built in
+class BehaviorMove(GenericBehaviorIRM):
+    def __init__(self):
+        super().__init__("move")
+
+    def releaser(self, robot:RoboController):
+        return False
+
+    def callback_released(self, robot:RoboController):
+        pass
+
+    def callback_inhibited(self, robot:RoboController):
+        pass
+
+    def update(self, robot:RoboController, dt):
+        #TODO: get heading from depth sensor, push it to the drive effector
+        #and also check if it's doing the corner avoidance
+        pass
+
+#Approach: when a face is detected, add heading/impulse towards the face
+class BehaviorApproach(GenericBehaviorIRM):
+    def __init__(self):
+        super().__init__("approach")
+
+    def releaser(self, robot:RoboController):
+        return False
+
+    def callback_released(self, robot:RoboController):
+        pass
+
+    def callback_inhibited(self, robot:RoboController):
+        pass
+
+    def update(self, robot:RoboController, dt):
+        pass
+        
 '''
-IRMs:
--Move: depth-based navigation
---also needs the turn-around-when-stuck behavior to be built in
--Approach: when a face is detected, add heading towards the face
+TODO irm
 -Avoid: when a face is detected, add heading away from the face
 --may not need this one, since people also register on depth; however, it may be good to give it a stronger avoidance
 ---but this may cause even more stuck-ness, since it'll potentially re-introduce "corner" cases
-"engage" sequence:
--Bump: move towards person and bump them
--turn around: set a random-length timer and a random direction, then turn
 '''
+
+#Bump: move towards person and bump them
+class BehaviorBump(GenericBehaviorSeq):
+    def __init__(self):
+        super().__init__("bump")
+
+    def is_complete(self, robot:RoboController):
+        return True
+
+    def callback_released(self, robot:RoboController):
+        pass
+
+    def callback_inhibited(self, robot:RoboController):
+        pass
+
+    def update(self, robot:RoboController, dt):
+        pass
+        
+#TurnAround: set a random-length timer and a random direction, then turn
+class BehaviorTurnAround(GenericBehaviorSeq):
+    def __init__(self):
+        super().__init__("turn around")
+
+    def is_complete(self, robot:RoboController):
+        return True
+
+    def callback_released(self, robot:RoboController):
+        pass
+
+    def callback_inhibited(self, robot:RoboController):
+        pass
+
+    def update(self, robot:RoboController, dt):
+        pass
 
 ###############################################################################
 #misc small helpers (enter/exit callbacks and transition predicates)
@@ -486,8 +551,15 @@ if __name__ == '__main__':
 
     #behaviors (TODO add behaviors to each)
     behaviors_wander = BehaviorManagerIRM()
+    behaviors_wander.add_behavior(BehaviorMove())
+    behaviors_wander.add_behavior(BehaviorApproach())
     behaviors_engage = BehaviorManagerSeq()
+    behaviors_engage.add_behavior(BehaviorBump())
+    behaviors_engage.add_behavior(BehaviorTurnAround())
     behaviors_play = BehaviorManagerIRM()
+    behaviors_play.add_behavior(BehaviorMove())
+    # behaviors_play.add_behavior(BehaviorAvoid())
+    # behaviors_play.add_behavior(BehaviorLightUp()) #TODO maybe add a behavior that turns on the button LED
     behaviors_sleep = BehaviorManagerIRM() #stays empty
 
     #states (first is initial state)
