@@ -12,9 +12,10 @@ import cv2                               # pip install opencv-python
 from insightface.app import FaceAnalysis # pip install insightface onnxruntime
 from __dependencies__ import json_fix
 from __dependencies__.websockets import serve
-from __dependencies__.blissful_basics import singleton, FS
+from __dependencies__.blissful_basics import singleton, FS, Warnings
 from __dependencies__.quik_config import find_and_load
 
+Warnings.disable()
 # goals of this file:
     # provide index.html to phone
     # listen to phone input, send faces to pi

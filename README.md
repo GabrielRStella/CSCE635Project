@@ -2,8 +2,11 @@
  Bump-and-run (tag) robot
 
 
-# Setup
+# Start sequence
+
+Desktop
 
 ```sh
-deno install -n archy -A https://deno.land/x/archaeopteryx/mod.ts
+./desktop/website_server.js &
+python ./desktop/socket_server.py
 ```
