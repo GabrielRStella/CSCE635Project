@@ -3,6 +3,7 @@ import os
 import asyncio
 import argparse 
 import base64
+import ssl
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..')) # add root of project to path
 
@@ -11,7 +12,7 @@ import cv2                               # pip install opencv-python
 from insightface.app import FaceAnalysis # pip install insightface onnxruntime
 from __dependencies__ import json_fix
 from __dependencies__.websockets import serve
-from __dependencies__.blissful_basics import singleton
+from __dependencies__.blissful_basics import singleton, FS
 from __dependencies__.quik_config import find_and_load
 
 # goals of this file:
@@ -34,8 +35,8 @@ config = info.config
 # face 
 # 
 print("\n\nthis is going to take like 15 seconds to load\n")
-insightface_app = FaceAnalysis()
-insightface_app.prepare(ctx_id=1, det_size=(config.image_width, config.image_height))
+# insightface_app = FaceAnalysis()
+# insightface_app.prepare(ctx_id=1, det_size=(config.image_width, config.image_height))
 print("okay loaded face")
 class BoundingBox(list):
     """
@@ -225,17 +226,14 @@ async def socket_response(websocket):
 # start servers
 # 
 async def main():
-    # print(f"open up http://localhost:{config.desktop.file_server_port}")
-    # server1 = await asyncio.start_server(server_response, "localhost", config.desktop.file_server_port)
-    server2 = await serve(socket_response, config.desktop.ip_address, config.desktop.web_socket_port)
-    async with (
-        # server1,
-        server2,
-    ):
-        print(f"socket now available: wss://{config.desktop.ip_address}:{config.desktop.web_socket_port}")
-        await asyncio.gather(
-            # server1.serve_forever(),
-            server2.serve_forever()
-        )
+    ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    ssl_context.load_cert_chain(
+        info.absolute_path_to.file_server_public_key,
+        keyfile=info.absolute_path_to.file_server_private_key,
+        password=None,
+    )
+    server2 = await serve(socket_response, config.desktop.ip_address, config.desktop.web_socket_port, ssl=ssl_context)
+    print(f"socket now available: https://{config.desktop.ip_address}:{config.desktop.web_socket_port}")
+    await server2.serve_forever()
 
 asyncio.run(main())
