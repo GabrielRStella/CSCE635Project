@@ -1,17 +1,28 @@
-import asyncio
-import websockets
 import random
+import sys
+import os
+import asyncio
+import argparse 
+import base64
+import ssl
 import json
+from time import sleep
+from threading import Thread
+from multiprocessing import Manager
 
-from quik_config import find_and_load            # pip install quik-config
-from blissful_basics import singleton, LazyDict  # pip install blissful-basics
+sys.path.append(os.path.join(os.path.dirname(__file__), '..')) # add root of project to path
 
-from async_tools import asyncify, main
+from __dependencies__ import websockets
+from __dependencies__.quik_config import find_and_load
+from __dependencies__.blissful_basics import singleton, LazyDict, Warnings, print
+from __dependencies__.websockets.sync.client import connect
+
 # goals of this file:
     # receive data
     # talk to motors
     # talk to face
 
+Warnings.disable()
 
 info = find_and_load(
     "config.yaml",
@@ -21,55 +32,65 @@ info = find_and_load(
 )
 config = info.config
 
-@singleton
-class Brain:
-    most_recent_faces = []
+# 
+# helpers
+# 
+manager = None # must be instantiated later
+shared_data = None # must be instantiated later
+def create_thread(function_being_wrapped):
+    thread = Thread(target=function_being_wrapped)
+    thread.start()
+    return thread
+ssl_context = ssl.SSLContext(cert_reqs=ssl.CERT_NONE)
+# ssl_context.load_cert_chain(
+#     info.absolute_path_to.file_server_public_key,
+#     keyfile=info.absolute_path_to.file_server_private_key,
+#     password=None,
+# )
 
-
+# 
+# desktop thread
+# 
+Desktop = None
 @singleton
 class Desktop:
-    url = f"ws://{config.desktop.ip_address}:{config.desktop.socket_port}/pi"
+    url = f"wss://{config.desktop.ip_address}:{config.desktop.web_socket_port}/pi"
     websocket = None
-    timeout_seconds = 0.5
     
-    @asyncify()
-    async def try_to_connect(self):
-        while True:
+    @staticmethod
+    def query_faces():
+        return shared_data["faces"]
+    
+    def listen_for_faces(*args):
+        while 1:
             try:
-                async with connect(self.url) as websocket:
-                    self.websocket = websocket
+                with connect(f"wss://{config.desktop.ip_address}:{config.desktop.web_socket_port}/pi", ssl_context=ssl_context) as websocket:
+                    print("connected")
+                    while 1:
+                        print("waiting on /pi receive")
+                        message = websocket.recv()
+                        print("got some data")
+                        try:
+                            shared_data["faces"] = json.loads(message)
+                        except Exception as error:
+                            pass
             except Exception as error:
                 print(f'''websocket connect error = {error}''')
-                await asyncio.sleep(self.timeout_seconds)
-
-    # When getting data from desktop
-    @asyncify()
-    async def handle_incoming_messages(self):
-        while True:
-            # wait until connect/reconnect
-            if not self.websocket:
-                await asyncio.sleep(1)
-            # then await messages
-            message = await self.websocket.recv()
-            
-            # TODO: maybe message.result()
-            faces = json.parse(message)
-            Brain.most_recent_faces = [ LazyDict(each) for each in faces ]
+                sleep(5)
     
-    @asyncify()
-    async def tell_face(self, data):
+    @staticmethod
+    def tell_face(data):
         string = json.dumps(data)
-        if self.websocket:
-            await self.websocket.send(string)
+        if not Desktop.websocket:
+            with connect(Desktop.url, ssl_context=ssl_context) as websocket:
+                Desktop.websocket = websocket
             
-@main
-async def _():
-    # start trying to connect
-    Desktop.try_to_connect()
-    Desktop.handle_incoming_messages()
-    
-    while True:
-        if len(Brain.most_recent_faces) > 0:
-            Desktop.tell_face(dict(is_happy=True))
+        websocket.send(string)
+
+
         
-        
+if __name__ == '__main__':
+    manager = Manager()
+    shared_data = manager.dict()
+    # Desktop.tell_face(dict(showHappy=True))
+    create_thread(Desktop.listen_for_faces)

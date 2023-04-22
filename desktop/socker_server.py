@@ -4,6 +4,7 @@ import asyncio
 import argparse 
 import base64
 import ssl
+import json
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..')) # add root of project to path
 
@@ -203,7 +204,7 @@ class Phone:
 async def socket_response(websocket):
     if websocket.path == '/pi':
         Pi.websocket = websocket
-        async for message in websocket: # message is a string sent from the webpage
+        async for message in websocket: # message is a string sent from the pi
             # forward emotion message to phone
             if Phone.websocket:
                 Phone.websocket.send(message)
@@ -215,7 +216,7 @@ async def socket_response(websocket):
             faces = Face.get_faces(img)
             print(f'''faces = {faces}''')
             if Pi.websocket:
-                Pi.send(json.dumps(faces))
+                Pi.websocket.send(json.dumps(faces))
     else:
         print(f'''websocket.path = {websocket.path}''')
 
