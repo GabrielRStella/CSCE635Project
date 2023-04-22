@@ -3,6 +3,12 @@
         "websockets": {
             "path": "__sources__/websockets/src/websockets"
         },
+        "blissful_basics": {
+            "path": "__sources__/blissful_basics/main/blissful_basics"
+        },
+        "elegant_events": {
+            "path": "__sources__/elegant_events/main/elegant_events"
+        },
         "json_fix": {
             "path": "__sources__/json_fix/main/json_fix"
         }

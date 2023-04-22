@@ -11,7 +11,7 @@ import cv2                               # pip install opencv-python
 from insightface.app import FaceAnalysis # pip install insightface onnxruntime
 from __dependencies__ import json_fix
 from __dependencies__.websockets import serve
-from blissful_basics import singleton    # pip install blissful-basics
+from __dependencies__.blissful_basics import singleton
 from quik_config import find_and_load    # pip install quik-config
 
 # goals of this file:
