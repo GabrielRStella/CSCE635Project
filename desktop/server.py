@@ -35,8 +35,8 @@ config = info.config
 # face 
 # 
 print("\n\nthis is going to take like 15 seconds to load\n")
-# insightface_app = FaceAnalysis()
-# insightface_app.prepare(ctx_id=1, det_size=(config.image_width, config.image_height))
+insightface_app = FaceAnalysis()
+insightface_app.prepare(ctx_id=1, det_size=(config.image_width, config.image_height))
 print("okay loaded face")
 class BoundingBox(list):
     """
@@ -125,6 +125,8 @@ class BoundingBox(list):
         return f'[x_top_left={f"{self.x_top_left:.2f}".rjust(5)},y_top_left={f"{self.y_top_left:.2f}".rjust(5)},width={f"{self.width:.2f}".rjust(5)},height={f"{self.height:.2f}".rjust(5)}]'
 
 class Face:
+    _model_loaded = False
+    insightface_app = None
     def __init__(self, insight_face, image):
         self.image = image
         self.insight = insight_face
@@ -142,6 +144,16 @@ class Face:
     def __repr__(self):
         relative_x, relative_y = self.relative_position
         return f"Face(age={self.insight.age},nod={self.nod:.2f},swivel={self.swivel:.2f},tilt={self.tilt:.2f},height={self.height:.0f},width={self.width:.0f},relative_x={relative_x*100:.0f},relative_y={relative_y*100:.0f},)"
+    
+    @staticmethod
+    def get_faces(image):
+        if not Face._model_loaded:
+            print("\n\nthis is going to take like 15 seconds to load\n")
+            Face.insightface_app = FaceAnalysis()
+            Face.insightface_app.prepare(ctx_id=1, det_size=(config.image_width, config.image_height))
+            print("okay loaded face model")
+        
+        return [ Face(each) for each in Face.insightface_app.get(image) ]
     
     @property
     def bounding_box(self):
@@ -180,22 +192,6 @@ class Face:
         )
 
 # 
-# html setup
-# 
-with open(info.path_to.face_html,'r') as f:
-    html_file_content = f.read()
-    html_file_content = html_file_content.replace("null/*UNQUE_ID_191093889137898240_address*/",f"'{config.desktop.ip_address}'")
-    html_file_content = html_file_content.replace("null/*UNQUE_ID_19827378957898240_port*/",f"{config.desktop.web_socket_port}")
-    html_file_content = html_file_content.encode('utf-8')
-async def server_response(reader, writer): 
-    writer.write("HTTP/1.1 200 OK\n".encode('utf-8'))
-    writer.write("Content-Type: text/html; charset=utf-8\n".encode('utf-8'))
-    writer.write(f"Content-Length: {len(html_file_content)}\n".encode('utf-8'))
-    writer.write(html_file_content)
-    await writer.drain()
-
-
-# 
 # socket setup
 # 
 @singleton
@@ -218,7 +214,7 @@ async def socket_response(websocket):
         async for message in websocket: # message is a string sent from the webpage
             img = cv2.imdecode(numpy.frombuffer(base64.b64decode(message.encode('utf-8')), numpy.uint8), 1)
             height, width, *channels = img.shape
-            faces = [ Face(each) for each in insightface_app.get(img) ]
+            faces = get_faces(img)
             if Pi.websocket:
                 Pi.send(json.dumps(faces))
 
