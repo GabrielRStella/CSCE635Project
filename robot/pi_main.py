@@ -82,15 +82,14 @@ class Desktop:
     def tell_face(data):
         string = json.dumps(data)
         if not Desktop.websocket:
-            with connect(Desktop.url, ssl_context=ssl_context) as websocket:
-                Desktop.websocket = websocket
+            Desktop.websocket = connect(Desktop.url, ssl_context=ssl_context)
             
-        websocket.send(string)
+        Desktop.websocket.send(string)
 
 
         
 if __name__ == '__main__':
     manager = Manager()
     shared_data = manager.dict()
-    # Desktop.tell_face(dict(showHappy=True))
-    create_thread(Desktop.listen_for_faces)
+    Desktop.tell_face(dict(showHappy=True))
+    # create_thread(Desktop.listen_for_faces)
