@@ -207,6 +207,7 @@ async def socket_response(websocket):
     if websocket.path == '/pi':
         Pi.sockets.add(websocket)
         async for message in websocket: # message is a string sent from the pi
+            print(f'''got message from pi = {message}''')
             # forward emotion message to phone
             websockets.broadcast(Phone.sockets, message)
         
@@ -217,8 +218,9 @@ async def socket_response(websocket):
         async for message in websocket: # message is a string sent from the webpage
             img = cv2.imdecode(numpy.frombuffer(base64.b64decode(message.encode('utf-8')), numpy.uint8), 1)
             height, width, *channels = img.shape
-            faces = Face.get_faces(img)
-            print(f'''faces = {faces}''')
+            faces = []
+            # faces = Face.get_faces(img)
+            # print(f'''faces = {faces}''')
             websockets.broadcast(Pi.sockets, json.dumps(faces))
         try: await websocket.wait_closed()
         finally: Phone.sockets.remove(websocket)
