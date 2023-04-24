@@ -12,6 +12,7 @@ import numpy                             # pip install numpy
 import cv2                               # pip install opencv-python
 from insightface.app import FaceAnalysis # pip install insightface onnxruntime
 from __dependencies__ import json_fix
+from __dependencies__ import websockets
 from __dependencies__.websockets import serve
 from __dependencies__.blissful_basics import singleton, FS, Warnings
 from __dependencies__.quik_config import find_and_load
@@ -193,30 +194,34 @@ class Face:
 # 
 # socket setup
 # 
+all_connections = set()
 @singleton
 class Pi:
-    websocket = None
+    sockets = set()
 
 @singleton
 class Phone:
-    websocket = None
+    sockets = set()
 
 async def socket_response(websocket):
     if websocket.path == '/pi':
-        Pi.websocket = websocket
+        Pi.sockets.add(websocket)
         async for message in websocket: # message is a string sent from the pi
             # forward emotion message to phone
-            if Phone.websocket:
-                Phone.websocket.send(message)
+            websockets.broadcast(Phone.sockets, message)
+        
+        try: await websocket.wait_closed()
+        finally: Pi.sockets.remove(websocket)
     elif websocket.path == "/phone":
-        Phone.websocket = websocket
+        Phone.sockets.add(websocket)
         async for message in websocket: # message is a string sent from the webpage
             img = cv2.imdecode(numpy.frombuffer(base64.b64decode(message.encode('utf-8')), numpy.uint8), 1)
             height, width, *channels = img.shape
             faces = Face.get_faces(img)
             print(f'''faces = {faces}''')
-            if Pi.websocket:
-                Pi.websocket.send(json.dumps(faces))
+            websockets.broadcast(Pi.sockets, json.dumps(faces))
+        try: await websocket.wait_closed()
+        finally: Phone.sockets.remove(websocket)
     else:
         print(f'''websocket.path = {websocket.path}''')
 
