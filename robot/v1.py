@@ -78,10 +78,30 @@ class RoboController(object):
         self.server_connection.stop()
 
 ###############################################################################
-#TODO may need a helper class here that redirects gpio stuff to a separate process
+#a helper class that redirects gpio stuff to a separate process
 #since gpio pin access requires sudo
-#and the motor/button classes would just send requests to this class
+#and the motor/button classes just send requests to this class
 ###############################################################################
+
+class GPIO:
+    def __init__(self):
+        args = ["sudo", "python3", "py_gpio_link.py"]
+        self.proc = subprocess.Popen(args, bufsize=0, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+        self.proc.stdin.write(b"bumpnrun\n") #send password to sudo
+        self.proc.stdin.flush() #just in case?
+
+    #gets state of pin 11
+    #tuple of (is down currently, has been pressed down)
+    def read(self):
+        pass
+
+    #write (speed, direction) to motor
+    #speedir = signed speed
+    def write(self, motor, speedir):
+        pass
+
+    def stop(self):
+        self.proc.terminate()
 
 ###############################################################################
 #TODO could use a helper class here
@@ -207,8 +227,7 @@ class SensorButtonPress(Sensor):
         return self.down and not self.pressed
 
     def update(self, dt):
-        self.pressed = self.down
-        self.down = False #TODO update from gpio
+        self.down, self.pressed = self.gpio.read()
 
 #face detector
 class SensorFace(Sensor):
@@ -266,14 +285,9 @@ class EffectorDrive(Effector):
         heading_angle = atan2(dy, dx)
         motor_spd_left = heading_speed * cos(heading_angle + pi / 4)
         motor_spd_right = heading_speed * cos(heading_angle - pi / 4)
-        #TODO push to motors/gpio
-        # motor_left.set_speed(abs(motor_spd_left))
-        # motor_left.set_dir(1 if motor_spd_left >= 0 else 0)
-        # motor_left.set()
-        # motor_right.set_speed(abs(motor_spd_right))
-        # motor_right.set_dir(1 if motor_spd_right >= 0 else 0)
-        # motor_right.set()
-
+        #push to motors/gpio
+        self.gpio.write(0, motor_spd_left)
+        self.gpio.write(1, motor_spd_right)
         #clear accumulated heading
         #hypothetically this could also do some running average to smooth out motor commands
         #or it could happen directly in the motor class
