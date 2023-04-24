@@ -5,6 +5,7 @@
     (path_to):
         this_file: "./info.yaml"
         face_html: desktop/index.html
+        capturer_mmap: robot/tests/v4l2_examples/capturer_mmap
         file_server_public_key: desktop/cert.pem
         file_server_private_key: desktop/key.pem
     
@@ -15,6 +16,6 @@
             image_height: 480
             image_width:  640
             desktop:
-                ip_address: 192.168.191.74 # UNIQUE_ID_fo4i3jf84309583
+                ip_address: 192.168.196.182 # UNIQUE_ID_fo4i3jf84309583
                 file_server_port: 7071
                 web_socket_port:  9093
