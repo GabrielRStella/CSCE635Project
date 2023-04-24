@@ -117,7 +117,30 @@ def calc_heading(arr_avg):
     y = -total[1] #flip so we turn away from close stuff
     return (x, y)
 
-# cv2.namedWindow("test")
+
+#for depth display
+cv2.namedWindow("test")
+
+#####################################################################
+#open subprocess
+#./capturer_mmap -D /dev/video0 -p 3 -w 480*270 2>/dev/null
+import subprocess
+'''
+class subprocess.Popen(args, bufsize=-1, executable=None,
+stdin=None, stdout=None, stderr=None,
+preexec_fn=None, close_fds=True, shell=False,
+cwd=None, env=None, universal_newlines=None, startupinfo=None,
+creationflags=0, restore_signals=True, start_new_session=False,
+pass_fds=(), *, group=None, extra_groups=None, user=None, umask=- 1,
+encoding=None, errors=None, text=None, pipesize=- 1, process_group=None)
+
+proc = subprocess.Popen(args, bufsize=0, stdout=subprocess.PIPE,
+startupinfo=None, creationflags=0, )
+'''
+args = ["./capturer_mmap", "-D", "/dev/video0", "-p", "3", "-w", "480*270", "2>/dev/null"]
+
+proc = subprocess.Popen(args, bufsize=-1, stdout=subprocess.PIPE)
+#####################################################################
 
 time_rotating = 0
 rot_dir = 0
@@ -129,7 +152,11 @@ while(True):
     dt = new_time - prev_time
     prev_time = new_time
     # print("frame", i)
-    data = sys.stdin.buffer.read(bpf)
+
+    # data = sys.stdin.buffer.read(bpf)
+    data = proc.stdout.read(bpf)
+
+
     # print("got:", type(data), len(data))
     arr = numpy.frombuffer(data, dtype=numpy.uint16) #.reshape(w, h, bpp)
     # print("in:", arr.shape)
@@ -156,7 +183,7 @@ while(True):
     print(heading_speed, heading_angle)
     sys.stdout.flush()
     #
-    # cv2.imshow("test", arr)
-    # cv2.waitKey(1)
+    cv2.imshow("test", arr)
+    cv2.waitKey(1)
     i += 1
     i = i % 10
