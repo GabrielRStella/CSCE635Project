@@ -8,16 +8,31 @@
 ###############################################################################
 
 from math import pi, tau, dist, fabs, cos
-# import sys
-# import copy
-# import numpy as np
-# import random
-# import queue
-# import threading
+import random
+import sys
+import os
+import asyncio
+import argparse 
+import base64
+import ssl
+import json
+from time import sleep
+from threading import Thread
+from multiprocessing import Manager
+import threading
 import subprocess
+# import copy
+# import queue
 
-def rad2deg(x):
-    return x * 180 / pi
+sys.path.append(os.path.join(os.path.dirname(__file__), '..')) # add root of project to path
+
+# import numpy as np
+
+from __dependencies__ import websockets
+from __dependencies__.quik_config import find_and_load
+from __dependencies__.blissful_basics import singleton, LazyDict, Warnings, print
+from __dependencies__.websockets.sync.client import connect
+
 
 #clamp x into [m1, m2]
 def clamp(x, m1, m2):
@@ -28,10 +43,26 @@ def clamp(x, m1, m2):
     return x
 
 ###############################################################################
+# misc init
+###############################################################################
+
+info = find_and_load(
+    "config.yaml",
+    cd_to_filepath=True,
+    fully_parse_args=True,
+    defaults_for_local_data=[],
+)
+config = info.config
+
+ssl_context = ssl.SSLContext(cert_reqs=ssl.CERT_NONE)
+
+shared_data = None # must be filled out later
+
+###############################################################################
 #robot controller / state manager
 ###############################################################################
 
-robot.sensors["depth"].get_heading()
+# robot.sensors["depth"].get_heading()
 
 class RoboController(object):
     """
@@ -44,7 +75,7 @@ class RoboController(object):
         self.states = StateMachine()
         #
         self.gpio = None #TODO
-        self.server_connection = None #TODO
+        self.server_connection = Desktop
         #
         self.sensors = {
             "timers": SensorTimers(),
@@ -109,7 +140,43 @@ class GPIO:
 #since it's used by 2-3 separate objects: face sensor, sound sensor, expression effector
 ###############################################################################
 
-
+@singleton
+class Desktop:
+    url = f"wss://{config.desktop.ip_address}:{config.desktop.web_socket_port}/pi"
+    websocket = None
+    
+    @staticmethod
+    def tell_face(data):
+        """
+        Example:
+            Desktop.tell_face(dict(showHappy=True))
+        """
+        string = json.dumps(data)
+        if not Desktop.websocket:
+            Desktop.websocket = connect(Desktop.url, ssl_context=ssl_context)
+            
+        Desktop.websocket.send(string)
+    
+    @staticmethod
+    def query_faces():
+        return shared_data["faces"]
+    
+    @staticmethod
+    def listen_for_faces(*args):
+        while threading.main_thread().is_alive():
+            try:
+                with connect(f"wss://{config.desktop.ip_address}:{config.desktop.web_socket_port}/pi", ssl_context=ssl_context) as websocket:
+                    print("connected")
+                    while 1:
+                        message = websocket.recv()
+                        try:
+                            shared_data["faces"] = json.loads(message)
+                        except Exception as error:
+                            pass
+            except Exception as error:
+                print(f'''websocket connect error = {error}''')
+                sleep(5)
+    
 
 ###############################################################################  
 #sensors
@@ -155,11 +222,14 @@ class SensorDepth(Sensor):
         self.width = 480
         self.height = 270
         self.bpp = 2 #bytes per pixel
-        self.bpf = w * h * bpp #bytes per frame
+        self.bpf = self.width * self.height * self.bpp #bytes per frame
         self.heading = (0, 0) #speed, angle
         #connect to depth reader subprocess
-        args = ["./capturer_mmap", "-D", "/dev/video0", "-p", "3", "-w", "480*270", "2>/dev/null"]
-        self.proc = subprocess.Popen(args, bufsize=-1, stdout=subprocess.PIPE)
+        try:
+            args = [ info.absolute_path_to.capturer_mmap, "-D", "/dev/video0", "-p", "3", "-w", "480*270", "2>/dev/null"]
+            self.proc = subprocess.Popen(args, bufsize=-1, stdout=subprocess.PIPE)
+        except Exception as error:
+            print("failed to start depth video subprocess")
         #TODO create polling thread
 
     def get_heading(self):
@@ -310,7 +380,7 @@ class EffectorButtonLED(Effector):
 #face expressions
 class EffectorExpressions(Effector):
     def __init__(self, server_connection):
-        self.server_connection
+        self.server_connection = server_connection
 
     #TODO add functions for the different expressions that the server supports
 
@@ -387,7 +457,7 @@ class BehaviorManagerIRM(object):
     def __init__(self):
         self.behaviors = []
 
-    def add_behavior(self, behavior:GenericBehaviorIRM):
+    def add_behavior(self, behavior):
         self.behaviors.append(behavior)
 
     def update(self, robot:RoboController, dt):
@@ -408,7 +478,7 @@ class BehaviorManagerIRM(object):
     #may not end up using this, tbh
     def disable_all(self):
         for behavior in self.behaviors:
-            if(behavior.released)
+            if behavior.released:
                 print(" *Disabling %s" % behavior.name) #asterisk so we can tell in the log that this is happening
                 behavior.callback_inhibited()
                 behavior.released = False
@@ -441,7 +511,7 @@ class BehaviorManagerSeq(object):
         self.index = -1
         self.sequence = [] #a list of seq behaviors that will execute in order
 
-    def add_behavior(self, behavior:GenericBehaviorSeq):
+    def add_behavior(self, behavior):
         self.sequence.append(behavior)
 
     def update(self, robot:RoboController, dt):
@@ -624,7 +694,6 @@ def transition_tagged(state, robot):
 ###############################################################################
 
 if __name__ == '__main__':
-
     robot = RoboController()
     states = robot.states
     #parameters
@@ -661,7 +730,10 @@ if __name__ == '__main__':
     states.add_transition(idx_play, transition_tagged, idx_sleep)
     states.add_transition(idx_play, transition_timeout("timeout_play"), idx_wander)
     states.add_transition(idx_sleep, transition_timeout("timeout_sleep"), idx_wander)
-
+    
+    
+    shared_data = Manager().dict()
+    Thread(target=Desktop.listen_for_faces).start()
     #run loop
     # r = rospy.Rate(60)
     # t = rospy.get_time()
