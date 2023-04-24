@@ -14,6 +14,7 @@ from math import pi, tau, dist, fabs, cos
 # import random
 # import queue
 # import threading
+import subprocess
 
 def rad2deg(x):
     return x * 180 / pi
@@ -29,6 +30,8 @@ def clamp(x, m1, m2):
 ###############################################################################
 #robot controller / state manager
 ###############################################################################
+
+robot.sensors["depth"].get_heading()
 
 class RoboController(object):
     """
@@ -127,17 +130,65 @@ class SensorTimers(Sensor):
 #depth detector
 class SensorDepth(Sensor):
     def __init__(self):
+        self.width = 480
+        self.height = 270
+        self.bpp = 2 #bytes per pixel
+        self.bpf = w * h * bpp #bytes per frame
         self.heading = (0, 0) #speed, angle
-        pass #TODO: connect to depth reader subprocess, create polling thread
+        #connect to depth reader subprocess
+        args = ["./capturer_mmap", "-D", "/dev/video0", "-p", "3", "-w", "480*270", "2>/dev/null"]
+        self.proc = subprocess.Popen(args, bufsize=-1, stdout=subprocess.PIPE)
+        #TODO create polling thread
 
     def get_heading(self):
-        self.heading
+        return self.heading
+
+    #take a flat z16 array -> 2d image -> avg depth of each col (1d z16 again lol)
+    def z16_to_avgs(self, arr):
+        #convert to w x h x 1 16-bit depth
+        arr = arr.reshape(self.height, self.width)
+
+        #chop off the bottom half
+        h2 = floor(arr.shape[0] * 0.6)
+        arr = arr[:h2, :]
+        
+        #average over every column
+        arr_dists = numpy.average(arr, axis=0)
+
+        #afaik, this returns numbers in mm
+        return arr_dists
+        
+    #return heading from avg depth value of each camera video column
+    def calc_heading(self, arr):
+        n = arr.shape[0]
+        fov = deg2rad(43) #max angle, in radians, of each side
+        indices = numpy.arange(0, n)
+        angles = numpy.interp(indices, [0, n - 1], [-fov, fov])
+        dist_min = 0
+        dist_backup = 750 #this seems to be in mm, but needs to have a pretty high threshold
+        dist_max = 3000
+        mags = numpy.interp(arr, [dist_min, dist_backup, dist_max], [-1, 0, 1])
+        #make vectors from mag and rotate by angle, then add them all up
+        coses = numpy.cos(angles)
+        sines = numpy.sin(angles)
+        vecs = numpy.stack((numpy.multiply(mags, coses), numpy.multiply(mags, sines)), axis=-1)
+        # print(vecs)
+        total = numpy.sum(vecs, axis=0) * (1.0 / n)
+        x = total[0]
+        y = -total[1] #flip so we turn away from close stuff
+        return (x, y)
 
     def update(self, dt):
-        pass #TODO get most recent heading from polling thread
+        #get most recent heading from depth
+        data = self.proc.stdout.read(self.bpf)
+        arr = numpy.frombuffer(data, dtype=numpy.uint16)
+        arr = self.z16_to_avgs(arr)
+        self.heading = calc_heading(arr_avg)
+        #TODO use polling thread
 
     def stop(self):
-        pass #TODO stop subprocess cleanly
+        #stop subprocess cleanly
+        self.proc.terminate()
 
 #button press
 class SensorButtonPress(Sensor):
@@ -426,6 +477,21 @@ class GenericBehaviorSeq(object):
 ###############################################################################
 #types of behaviors
 ###############################################################################
+
+'''
+    dx = 0
+    dy = 0
+    if(time_rotating > 0):
+        dx = 0
+        dy = rot_dir
+        time_rotating -= dt
+    else:
+        dx, dy = calc_heading(arr_avg)
+        eprint(dx)
+        if(dx < 0.1):
+            time_rotating = random() * 3
+            rot_dir = 1 if random() < 0.5 else -1
+'''
 
 #Move: depth-based navigation
 #also needs the turn-around-when-stuck behavior to be built in
