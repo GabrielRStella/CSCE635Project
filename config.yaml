@@ -15,6 +15,8 @@
         (default):
             image_height: 480
             image_width:  640
+            phone:
+                fov: 76 # degrees
             desktop:
                 ip_address: 192.168.196.182 # UNIQUE_ID_fo4i3jf84309583
                 file_server_port: 7071

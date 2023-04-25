@@ -30,7 +30,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..')) # add root of pro
 
 from __dependencies__ import websockets
 from __dependencies__.quik_config import find_and_load
-from __dependencies__.blissful_basics import singleton, LazyDict, Warnings, print
+from __dependencies__.blissful_basics import singleton, LazyDict, Warnings, print, arg_maxs
 from __dependencies__.websockets.sync.client import connect
 
 
@@ -301,7 +301,24 @@ class SensorButtonPress(Sensor):
 class SensorFace(Sensor):
     def __init__(self, server_connection):
         self.server_connection = server_connection
+
+    def update(self, dt):
+        """
+        Summary:
+            Returns either None or positive/negative degrees
+        """
         faces = self.server_connection.query_faces()
+        if len(faces) == 0:
+            return None
+        if len(faces) == 1:
+            return faces[0]["relative_x"] * config.phone.fov/2
+        
+        # headings go from -degress to positives
+        headings = [ each["relative_x"] * config.phone.fov/2 for each in faces ]
+        sizes    = [ each["relative_width"] * each["relative_height"] for each in faces ]
+        
+        return arg_max(args=sizes, values=headings)
+        
         # each face is: dict(
         #     nod=self.nod,
         #     swivel=self.swivel,
@@ -312,14 +329,10 @@ class SensorFace(Sensor):
         #     relative_height=self.relative_height,
         #     age=self.insight.age,
         # )
-
-    #TODO face API (direction / strength of match?)
-
-    def update(self, dt):
-        pass #TODO update data from connection
+        
 
     def stop(self):
-        pass #TODO close connection to server
+        pass
 
 #random noise modulator
 #microphone (for debug)
