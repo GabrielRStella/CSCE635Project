@@ -599,7 +599,7 @@ class BehaviorMove(GenericBehaviorIRM):
         self.rotation_dir = 0
 
     def releaser(self, robot:RoboController):
-        return False
+        return True
 
     def callback_released(self, robot:RoboController):
         pass
