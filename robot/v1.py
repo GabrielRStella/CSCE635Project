@@ -16,7 +16,7 @@ import argparse
 import base64
 import ssl
 import json
-from time import sleep
+from time import sleep, time
 from threading import Thread
 from multiprocessing import Manager
 import threading
@@ -74,7 +74,7 @@ class RoboController(object):
     def __init__(self):
         self.states = StateMachine()
         #
-        self.gpio = GPIO() #TODO
+        self.gpio = GPIO()
         self.server_connection = Desktop
         #
         self.sensors = {
@@ -99,7 +99,7 @@ class RoboController(object):
         for _, effector in self.effectors:
             effector.update(dt)
 
-    #TODO cleanup
+    #cleanup
     def stop(self):
         for _, sensor in self.sensors:
             sensor.stop()
@@ -721,7 +721,7 @@ if __name__ == '__main__':
     param_timeout_play = 20.0 #how long (in seconds) it'll run around before timing out and going back to wander
     param_timeout_sleep = 10.0 #how long it'll sleep before it goes back to wander
 
-    #behaviors (TODO add behaviors to each)
+    #behaviors (and add behaviors to each)
     behaviors_wander = BehaviorManagerIRM()
     behaviors_wander.add_behavior(BehaviorMove())
     behaviors_wander.add_behavior(BehaviorApproach())
@@ -755,12 +755,15 @@ if __name__ == '__main__':
     
     shared_data = Manager().dict()
     Thread(target=Desktop.listen_for_faces).start()
+
+
     #run loop
-    # r = rospy.Rate(60)
-    # t = rospy.get_time()
-    # while not rospy.is_shutdown():
-    #     dt = rospy.get_time() - t
-    #     t = rospy.get_time()
-    #     robot.update(dt)
-    #     r.sleep()
-    # robot.stop()
+    prev_time = time()
+    while(True):
+        #
+        curr_time = time()
+        dt = curr_time - prev_time
+        prev_time = curr_time
+        #
+        robot.update(dt)
+    robot.stop() #heheheh
