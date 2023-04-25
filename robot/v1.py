@@ -779,7 +779,7 @@ if __name__ == '__main__':
     # state_debug = State("debug", behaviors_debug, on_enter=None, on_exit=None) #TODO we need mic for this
 
     #state transitions
-    states.add_transition(idx_startup, idx_wander, transition_tagged)
+    states.add_transition(idx_startup, transition_tagged, idx_wander)
     states.add_transition(idx_wander, transition_face_found, idx_engage)
     states.add_transition(idx_engage, transition_sequence_complete, idx_play)
     states.add_transition(idx_play, transition_tagged, idx_sleep)
