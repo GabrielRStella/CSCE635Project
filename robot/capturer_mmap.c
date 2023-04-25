@@ -101,9 +101,9 @@ static int read_frame  (int * fd, int width, int height, int * n_buffers,
 
 	int ret;
 	//writing to standard output
-    fprintf(stderr, "Writing %d bytes\n", Bpf);
+    // fprintf(stderr, "Writing %d bytes\n", Bpf);
 	ret = write(STDOUT_FILENO, buffers[buf.index].start, Bpf);
-    fprintf(stderr, "Wrote %d bytes\n", ret);
+    // fprintf(stderr, "Wrote %d bytes\n", ret);
 	if (-1 == xioctl (*fd, VIDIOC_QBUF, &buf))
 		errno_exit ("VIDIOC_QBUF");
 

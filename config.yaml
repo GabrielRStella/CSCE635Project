@@ -5,7 +5,7 @@
     (path_to):
         this_file: "./info.yaml"
         face_html: desktop/index.html
-        capturer_mmap: robot/tests/v4l2_examples/capturer_mmap
+        capturer_mmap: robot/capturer_mmap
         file_server_public_key: desktop/cert.pem
         file_server_private_key: desktop/key.pem
         py_gpio_link: robot/py_gpio_link.py

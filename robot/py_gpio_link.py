@@ -12,6 +12,8 @@ GPIO.setup(11, GPIO.IN, GPIO.PUD_UP)
 
 from math import pi, cos, sin
 
+import sys
+
 #motor pins:
 #5 = left speed (PWM)
 #7 = left forwards
@@ -72,6 +74,10 @@ if __name__ == '__main__':
 
     moving = 0
     btn_was_down = False
+
+    # eprint("hi...")
+    # first_line = input() #skip one line
+    # eprint("bye:", first_line)
     
     while True:
         #
@@ -81,13 +87,14 @@ if __name__ == '__main__':
         vals = line.split(" ")
         #
         cmd = int(vals[0])
+        # eprint("processing:", vals)
         match(cmd):
             #input
             case -1:
                 i = GPIO.input(11)
                 btn_down = (i < 0.5)
                 #send result
-                print(str(btn_down) + " " + std(btn_was_down) + "\n")
+                print(str(btn_down) + " " + str(btn_was_down))
                 #update for next loop
                 btn_was_down = btn_down
             #left motor
@@ -100,7 +107,8 @@ if __name__ == '__main__':
             #right motor
             case 1:
                 motor_spd_right = float(vals[1])
-                motor_left.set_speed(abs(motor_spd_right))
-                motor_left.set_dir(1 if motor_spd_right >= 0 else 0)
-                motor_left.set()
+                motor_right.set_speed(abs(motor_spd_right))
+                motor_right.set_dir(1 if motor_spd_right >= 0 else 0)
+                motor_right.set()
                 print("Done: right motor") #notify main process
+        sys.stdout.flush()
