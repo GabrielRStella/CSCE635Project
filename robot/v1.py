@@ -616,7 +616,7 @@ class BehaviorMove(GenericBehaviorIRM):
         else:
             heading = robot.sensors["depth"].get_heading()
             if(heading[0] < 0.1):
-                self.time_rotating = random() * 3
+                self.time_rotating = random() * 2 + 1
                 self.rotation_dir = 1 if random() < 0.5 else -1
         robot.effectors["drive"].push_heading(heading)
 
@@ -665,18 +665,23 @@ class BehaviorBump(GenericBehaviorSeq):
 class BehaviorTurnAround(GenericBehaviorSeq):
     def __init__(self):
         super().__init__("turn around")
+        self.time_rotating = 0
+        self.rotation_dir = 0
 
     def is_complete(self, robot:RoboController):
-        return True
+        return self.time_rotating < 0
 
     def callback_released(self, robot:RoboController):
-        pass
+        self.time_rotating = random() * 2 + 1
+        self.rotation_dir = 1 if random() < 0.5 else -1
 
     def callback_inhibited(self, robot:RoboController):
         pass
 
     def update(self, robot:RoboController, dt):
-        pass
+        self.time_rotating -= dt
+        heading = (0, self.rotation_dir)
+        robot.effectors["drive"].push_heading(heading)
 
 ###############################################################################
 #misc small helpers (enter/exit callbacks and transition predicates)
