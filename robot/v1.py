@@ -30,9 +30,10 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..')) # add root of pro
 
 from __dependencies__ import websockets
 from __dependencies__.quik_config import find_and_load
-from __dependencies__.blissful_basics import singleton, LazyDict, Warnings, print, arg_maxs
+from __dependencies__.blissful_basics import singleton, LazyDict, Warnings, print, arg_maxs, Warnings
 from __dependencies__.websockets.sync.client import connect
 
+Warnings.disable()
 
 #clamp x into [m1, m2]
 def clamp(x, m1, m2):
