@@ -106,7 +106,6 @@ class RoboController(object):
         for _, effector in self.effectors:
             effector.stop()
         self.gpio.stop()
-        self.server_connection.stop()
 
 ###############################################################################
 #a helper class that redirects gpio stuff to a separate process
@@ -139,8 +138,7 @@ class GPIO:
         self.proc.terminate()
 
 ###############################################################################
-#TODO could use a helper class here
-#that manages the pi's connection to the websocket server
+#helper class that manages the pi's connection to the websocket server
 #since it's used by 2-3 separate objects: face sensor, sound sensor, expression effector
 ###############################################################################
 
@@ -307,6 +305,17 @@ class SensorButtonPress(Sensor):
 class SensorFace(Sensor):
     def __init__(self, server_connection):
         self.server_connection = server_connection
+        faces = self.server_connection.query_faces()
+        # each face is: dict(
+        #     nod=self.nod,
+        #     swivel=self.swivel,
+        #     tilt=self.tilt,
+        #     relative_x=relative_x,
+        #     relative_y=relative_y,
+        #     relative_width=self.relative_width,
+        #     relative_height=self.relative_height,
+        #     age=self.insight.age,
+        # )
 
     #TODO face API (direction / strength of match?)
 
@@ -385,12 +394,24 @@ class EffectorButtonLED(Effector):
 class EffectorExpressions(Effector):
     def __init__(self, server_connection):
         self.server_connection = server_connection
-
-    #TODO add functions for the different expressions that the server supports
-
-    def update(self, dt):
-        pass #TODO push current expression to server connection object
-
+    
+    def show_happy(self):
+        """
+        Summary:
+            at time of writing, this will make happy eyes which last for
+            2 seconds before auto-resetting to normal
+        """
+        self.server_connection.tell_face(dict(showHappy=True))
+        
+    def show_confusion(self):
+        self.server_connection.tell_face(dict(showConfusion=True))
+    
+    def show_scared(self):
+        self.server_connection.tell_face(dict(showScared=True))
+    
+    def relax(self):
+        self.server_connection.tell_face(dict(relax=True))
+        
 ###############################################################################
 #state machine management
 ###############################################################################
