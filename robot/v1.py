@@ -305,6 +305,7 @@ class SensorButtonPress(Sensor):
 class SensorFace(Sensor):
     def __init__(self, server_connection):
         self.server_connection = server_connection
+        self.heading = None #angle to face, in degrees, +/-
 
     def update(self, dt):
         """
@@ -313,15 +314,14 @@ class SensorFace(Sensor):
         """
         faces = self.server_connection.query_faces()
         if len(faces) == 0:
-            return None
-        if len(faces) == 1:
-            return faces[0]["relative_x"] * config.phone.fov/2
-        
-        # headings go from -degress to positives
-        headings = [ each["relative_x"] * config.phone.fov/2 for each in faces ]
-        sizes    = [ each["relative_width"] * each["relative_height"] for each in faces ]
-        
-        return arg_max(args=sizes, values=headings)
+            self.heading = None
+        elif len(faces) == 1:
+            self.heading = faces[0]["relative_x"] * config.phone.fov/2
+        else:
+            # headings go from -degress to positives
+            headings = [ each["relative_x"] * config.phone.fov/2 for each in faces ]
+            sizes    = [ each["relative_width"] * each["relative_height"] for each in faces ]
+            self.heading = arg_max(args=sizes, values=headings)
         
         # each face is: dict(
         #     nod=self.nod,
@@ -334,6 +334,17 @@ class SensorFace(Sensor):
         #     age=self.insight.age,
         # )
         
+
+    def has_face(self):
+        return self.heading is not None
+
+    def get_heading(self):
+        if(self.heading is None):
+            return (0, 0)
+        theta = deg2rad(self.heading)
+        dx = cos(theta)
+        dy = sin(theta)
+        return (dx, dy)
 
     def stop(self):
         pass
@@ -720,9 +731,9 @@ def transition_timeout(name):
 def transition_sequence_complete(state, robot):
     return state.behaviors.is_complete()
 
-#TODO transition from wander -> engage when face is found
+#transition from wander -> engage when face is found
 def transition_face_found(state, robot):
-    return False
+    return robot.sensors["face"].has_face()
 
 #transition from play -> sleep when button is pressed
 def transition_tagged(state, robot):
@@ -740,6 +751,8 @@ if __name__ == '__main__':
     param_timeout_sleep = 10.0 #how long it'll sleep before it goes back to wander
 
     #behaviors (and add behaviors to each)
+    behaviors_startup = BehaviorManagerIRM() #empty start state
+    #
     behaviors_wander = BehaviorManagerIRM()
     behaviors_wander.add_behavior(BehaviorMove())
     behaviors_wander.add_behavior(BehaviorApproach())
@@ -753,6 +766,8 @@ if __name__ == '__main__':
     behaviors_sleep = BehaviorManagerIRM() #stays empty
 
     #states (first is initial state)
+    state_startup = State("startup", behaviors_startup)
+    idx_startup = states.add_state(state_startup)
     state_wander = State("wander", behaviors_wander, on_exit=cb_disable_behaviors)
     idx_wander = states.add_state(state_wander)
     state_engage = State("engage", behaviors_engage, on_enter=cb_restart_sequence)
@@ -764,6 +779,7 @@ if __name__ == '__main__':
     # state_debug = State("debug", behaviors_debug, on_enter=None, on_exit=None) #TODO we need mic for this
 
     #state transitions
+    states.add_transition(idx_startup, idx_wander, transition_tagged)
     states.add_transition(idx_wander, transition_face_found, idx_engage)
     states.add_transition(idx_engage, transition_sequence_complete, idx_play)
     states.add_transition(idx_play, transition_tagged, idx_sleep)
