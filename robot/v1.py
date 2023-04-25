@@ -134,8 +134,7 @@ class GPIO:
         self.proc.terminate()
 
 ###############################################################################
-#TODO could use a helper class here
-#that manages the pi's connection to the websocket server
+#helper class that manages the pi's connection to the websocket server
 #since it's used by 2-3 separate objects: face sensor, sound sensor, expression effector
 ###############################################################################
 
