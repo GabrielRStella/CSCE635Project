@@ -55,43 +55,52 @@ class Motor:
             self.forward_pin.write(self.direction)
             self.backward_pin.write(1 - self.direction)
 
+# https://stackoverflow.com/a/14981125
+def eprint(*args, **kwargs):
+    print(*args, file=sys.stderr, **kwargs)
+
 import pyfirmata
 import time
+
 if __name__ == '__main__':
+    eprint("Connecting to arduino...")
     board = pyfirmata.Arduino('/dev/ttyACM0')
-    print("Communication Successfully started")
+    eprint(" connected!")
 
     motor_left = Motor(board, 5, 7, 8)
     motor_right = Motor(board, 6, 11, 9)
 
     moving = 0
-    pressing = False
+    btn_was_down = False
     
     while True:
         #
         i = GPIO.input(11)
-        b = (i < 0.5)
-        if(b):
-            if(not pressing):
-                pressing = True
-                moving = 1 - moving
-        else:
-            pressing = False
-        #input heading from stdin
+        #input command from stdin
         line = input()
         vals = line.split(" ")
-        # print("got", vals)
-        heading_speed = float(vals[0])
-        heading_angle = float(vals[1])
         #
-        motor_spd_left = moving * heading_speed * cos(heading_angle + pi / 4)
-        motor_spd_right = moving * heading_speed * cos(heading_angle - pi / 4)
-        #
-
-        motor_left.set_speed(abs(motor_spd_left))
-        motor_left.set_dir(1 if motor_spd_left >= 0 else 0)
-        motor_left.set()
-
-        motor_right.set_speed(abs(motor_spd_right))
-        motor_right.set_dir(1 if motor_spd_right >= 0 else 0)
-        motor_right.set()
+        cmd = int(vals[0])
+        match(cmd):
+            #input
+            case -1:
+                i = GPIO.input(11)
+                btn_down = (i < 0.5)
+                #send result
+                print(str(btn_down) + " " + std(btn_was_down) + "\n")
+                #update for next loop
+                btn_was_down = btn_down
+            #left motor
+            case 0:
+                motor_spd_left = float(vals[1])
+                motor_left.set_speed(abs(motor_spd_left))
+                motor_left.set_dir(1 if motor_spd_left >= 0 else 0)
+                motor_left.set()
+                print("Done: left motor") #notify main process
+            #right motor
+            case 1:
+                motor_spd_right = float(vals[1])
+                motor_left.set_speed(abs(motor_spd_right))
+                motor_left.set_dir(1 if motor_spd_right >= 0 else 0)
+                motor_left.set()
+                print("Done: right motor") #notify main process

@@ -16,7 +16,7 @@ import argparse
 import base64
 import ssl
 import json
-from time import sleep
+from time import sleep, time
 from threading import Thread
 from multiprocessing import Manager
 import threading
@@ -74,7 +74,7 @@ class RoboController(object):
     def __init__(self):
         self.states = StateMachine()
         #
-        self.gpio = None #TODO
+        self.gpio = GPIO()
         self.server_connection = Desktop
         #
         self.sensors = {
@@ -99,7 +99,7 @@ class RoboController(object):
         for _, effector in self.effectors:
             effector.update(dt)
 
-    #TODO cleanup
+    #cleanup
     def stop(self):
         for _, sensor in self.sensors:
             sensor.stop()
@@ -116,19 +116,23 @@ class RoboController(object):
 class GPIO:
     def __init__(self):
         args = ["sudo", "python3", "py_gpio_link.py"]
-        self.proc = subprocess.Popen(args, bufsize=0, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-        self.proc.stdin.write(b"bumpnrun\n") #send password to sudo
+        self.proc = subprocess.Popen(args, bufsize=1, stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
+        self.proc.stdin.write("bumpnrun\n") #send password to sudo
         self.proc.stdin.flush() #just in case?
 
     #gets state of pin 11
     #tuple of (is down currently, has been pressed down)
     def read(self):
-        pass
+        self.proc.stdin.write("-1\n") #send a single -1 for "input" command
+        data = self.proc.stdout.read()
+        return [bool(s) for s in data.split(" ")]
 
     #write (speed, direction) to motor
     #speedir = signed speed
     def write(self, motor, speedir):
-        pass
+        s = str(motor) + " " + str(speedir) + "\n"
+        self.proc.stdin.write(s)
+        self.proc.stdin.read() #wait for it to finish
 
     def stop(self):
         self.proc.terminate()
@@ -598,26 +602,14 @@ class GenericBehaviorSeq(object):
 #types of behaviors
 ###############################################################################
 
-'''
-    dx = 0
-    dy = 0
-    if(time_rotating > 0):
-        dx = 0
-        dy = rot_dir
-        time_rotating -= dt
-    else:
-        dx, dy = calc_heading(arr_avg)
-        eprint(dx)
-        if(dx < 0.1):
-            time_rotating = random() * 3
-            rot_dir = 1 if random() < 0.5 else -1
-'''
-
 #Move: depth-based navigation
 #also needs the turn-around-when-stuck behavior to be built in
 class BehaviorMove(GenericBehaviorIRM):
     def __init__(self):
         super().__init__("move")
+        #corner avoidance via random turning :^)
+        self.time_rotating = 0
+        self.rotation_dir = 0
 
     def releaser(self, robot:RoboController):
         return False
@@ -629,9 +621,17 @@ class BehaviorMove(GenericBehaviorIRM):
         pass
 
     def update(self, robot:RoboController, dt):
-        #TODO: get heading from depth sensor, push it to the drive effector
+        #get heading from depth sensor, push it to the drive effector
         #and also check if it's doing the corner avoidance
-        pass
+        heading = (0, self.rotation_dir)
+        if(self.time_rotating > 0):
+            self.time_rotating -= dt
+        else:
+            heading = robot.sensors["depth"].get_heading()
+            if(heading[0] < 0.1):
+                self.time_rotating = random() * 3
+                self.rotation_dir = 1 if random() < 0.5 else -1
+        robot.effectors["drive"].push_heading(heading)
 
 #Approach: when a face is detected, add heading/impulse towards the face
 class BehaviorApproach(GenericBehaviorIRM):
@@ -734,7 +734,7 @@ if __name__ == '__main__':
     param_timeout_play = 20.0 #how long (in seconds) it'll run around before timing out and going back to wander
     param_timeout_sleep = 10.0 #how long it'll sleep before it goes back to wander
 
-    #behaviors (TODO add behaviors to each)
+    #behaviors (and add behaviors to each)
     behaviors_wander = BehaviorManagerIRM()
     behaviors_wander.add_behavior(BehaviorMove())
     behaviors_wander.add_behavior(BehaviorApproach())
@@ -768,12 +768,15 @@ if __name__ == '__main__':
     
     shared_data = Manager().dict()
     Thread(target=Desktop.listen_for_faces).start()
+
+
     #run loop
-    # r = rospy.Rate(60)
-    # t = rospy.get_time()
-    # while not rospy.is_shutdown():
-    #     dt = rospy.get_time() - t
-    #     t = rospy.get_time()
-    #     robot.update(dt)
-    #     r.sleep()
-    # robot.stop()
+    prev_time = time()
+    while(True):
+        #
+        curr_time = time()
+        dt = curr_time - prev_time
+        prev_time = curr_time
+        #
+        robot.update(dt)
+    robot.stop() #heheheh
