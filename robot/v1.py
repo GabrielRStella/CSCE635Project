@@ -116,7 +116,7 @@ class RoboController(object):
 
 class GPIO:
     def __init__(self):
-        args = ["sudo", "python3", "py_gpio_link.py"]
+        args = ["sudo", "python3", info.absolute_path_to.py_gpio_link ]
         self.proc = subprocess.Popen(args, bufsize=1, stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
         self.proc.stdin.write("bumpnrun\n") #send password to sudo
         self.proc.stdin.flush() #just in case?
