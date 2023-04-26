@@ -203,7 +203,9 @@ class Pi:
 class Phone:
     sockets = set()
 
+frame_count = 0
 async def socket_response(websocket):
+    global frame_count
     if websocket.path == '/pi':
         Pi.sockets.add(websocket)
         async for message in websocket: # message is a string sent from the pi
@@ -216,12 +218,18 @@ async def socket_response(websocket):
     elif websocket.path == "/phone":
         Phone.sockets.add(websocket)
         async for message in websocket: # message is a string sent from the webpage
-            img = cv2.imdecode(numpy.frombuffer(base64.b64decode(message.encode('utf-8')), numpy.uint8), 1)
-            height, width, *channels = img.shape
-            faces = []
-            # faces = Face.get_faces(img)
-            # print(f'''faces = {faces}''')
-            websockets.broadcast(Pi.sockets, json.dumps(faces))
+            try:
+                data = json.loads(message)
+                if data["acceleration"]:
+                    print(f'''got acceleration = {data["acceleration"]}''')
+            except Exception as error:
+                img = cv2.imdecode(numpy.frombuffer(base64.b64decode(message.encode('utf-8')), numpy.uint8), 1)
+                height, width, *channels = img.shape
+                faces = []
+                faces = Face.get_faces(img)
+                frame_count += 1
+                print(f'''{frame_count}: faces = {faces}''')
+                websockets.broadcast(Pi.sockets, json.dumps(faces))
         try: await websocket.wait_closed()
         finally: Phone.sockets.remove(websocket)
     else:
