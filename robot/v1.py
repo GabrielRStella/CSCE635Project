@@ -7,8 +7,8 @@
 #imports
 ###############################################################################
 
-from math import pi, tau, dist, fabs, cos
-import random
+from math import floor, sqrt, atan2, pi, tau, dist, fabs, cos, radians
+from random import random
 import sys
 import os
 import asyncio
@@ -26,7 +26,7 @@ import subprocess
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..')) # add root of project to path
 
-# import numpy as np
+import numpy
 
 from __dependencies__ import websockets
 from __dependencies__.quik_config import find_and_load
@@ -95,16 +95,16 @@ class RoboController(object):
     #dt is delta time in seconds since last update call
     def update(self, dt):
         self.states.update(self, dt)
-        for _, sensor in self.sensors:
+        for _, sensor in self.sensors.items():
             sensor.update(dt)
-        for _, effector in self.effectors:
+        for _, effector in self.effectors.items():
             effector.update(dt)
 
     #cleanup
     def stop(self):
-        for _, sensor in self.sensors:
+        for _, sensor in self.sensors.items():
             sensor.stop()
-        for _, effector in self.effectors:
+        for _, effector in self.effectors.items():
             effector.stop()
         self.gpio.stop()
 
@@ -116,8 +116,8 @@ class RoboController(object):
 
 class GPIO:
     def __init__(self):
-        args = ["sudo", "python3", info.absolute_path_to.py_gpio_link ]
-        self.proc = subprocess.Popen(args, bufsize=1, stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
+        args = ["sudo", "-S", "-k", "python3", info.absolute_path_to.py_gpio_link ]
+        self.proc = subprocess.Popen(args, bufsize=0, stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
         self.proc.stdin.write("bumpnrun\n") #send password to sudo
         self.proc.stdin.flush() #just in case?
 
@@ -125,15 +125,19 @@ class GPIO:
     #tuple of (is down currently, has been pressed down)
     def read(self):
         self.proc.stdin.write("-1\n") #send a single -1 for "input" command
-        data = self.proc.stdout.read()
-        return [bool(s) for s in data.split(" ")]
+        self.proc.stdin.flush()
+        data = self.proc.stdout.readline()
+        # print("read: \"" + str(data) + "\"")
+        return [(s == "True") for s in data.split(" ")]
 
     #write (speed, direction) to motor
     #speedir = signed speed
     def write(self, motor, speedir):
         s = str(motor) + " " + str(speedir) + "\n"
         self.proc.stdin.write(s)
-        self.proc.stdin.read() #wait for it to finish
+        self.proc.stdin.flush()
+        response = self.proc.stdout.readline() #wait for it to finish
+        # print("write got:", response)
 
     def stop(self):
         self.proc.terminate()
@@ -256,7 +260,7 @@ class SensorDepth(Sensor):
     #return heading from avg depth value of each camera video column
     def calc_heading(self, arr):
         n = arr.shape[0]
-        fov = deg2rad(43) #max angle, in radians, of each side
+        fov = radians(43) #max angle, in radians, of each side
         indices = numpy.arange(0, n)
         angles = numpy.interp(indices, [0, n - 1], [-fov, fov])
         dist_min = 0
@@ -278,7 +282,7 @@ class SensorDepth(Sensor):
         data = self.proc.stdout.read(self.bpf)
         arr = numpy.frombuffer(data, dtype=numpy.uint16)
         arr = self.z16_to_avgs(arr)
-        self.heading = calc_heading(arr_avg)
+        self.heading = self.calc_heading(arr)
         #TODO use polling thread
 
     def stop(self):
@@ -301,6 +305,7 @@ class SensorButtonPress(Sensor):
 
     def update(self, dt):
         self.down, self.pressed = self.gpio.read()
+        # print("down?", self.down)
 
 #face detector
 class SensorFace(Sensor):
@@ -445,7 +450,7 @@ class StateMachine:
     def __init__(self):
         self.states = [] #states are State objects
         self.transitions = [] #for each State object, store a list of transitions; these are pairs of (predicate, destination state index)
-        self.current_state = 0
+        self.current_state = -1
 
     def add_state(self, state):
         self.states.append(state)
@@ -458,6 +463,9 @@ class StateMachine:
         self.transitions[src_index].append((predicate, dst_index))
 
     def update(self, robot, dt):
+        if(self.current_state < 0):
+            self.current_state = 0
+            self.states[self.current_state].cb_enter(robot)
         #update current state
         curr = self.states[self.current_state]
         curr.update(robot, dt)
@@ -521,16 +529,16 @@ class BehaviorManagerIRM(object):
                     behavior.update(robot, dt)
             elif((not r) and behavior.released):
                 print(" Disabling %s" % behavior.name)
-                behavior.callback_inhibited()
+                behavior.callback_inhibited(robot)
             behavior.released = r
 
     #so when the state is left, all behaviors can be deactivated
     #may not end up using this, tbh
-    def disable_all(self):
+    def disable_all(self, robot):
         for behavior in self.behaviors:
             if behavior.released:
                 print(" *Disabling %s" % behavior.name) #asterisk so we can tell in the log that this is happening
-                behavior.callback_inhibited()
+                behavior.callback_inhibited(robot)
                 behavior.released = False
 
 #superclass for IRM behaviors
@@ -714,7 +722,7 @@ class BehaviorTurnAround(GenericBehaviorSeq):
 
 #disable all irm behaviors on state exit
 def cb_disable_behaviors(state, robot):
-    state.behaviors.disable_all()
+    state.behaviors.disable_all(robot)
 
 #restart behavior sequence on state enter
 def cb_restart_sequence(state, robot):
@@ -769,7 +777,7 @@ if __name__ == '__main__':
     #states (first is initial state)
     state_startup = State("startup", behaviors_startup)
     idx_startup = states.add_state(state_startup)
-    state_wander = State("wander", behaviors_wander, on_exit=cb_disable_behaviors)
+    state_wander = State("wander", behaviors_wander, on_enter=cb_start_timer("timeout_tmp", 10), on_exit=cb_disable_behaviors)
     idx_wander = states.add_state(state_wander)
     state_engage = State("engage", behaviors_engage, on_enter=cb_restart_sequence)
     idx_engage = states.add_state(state_engage)
@@ -782,6 +790,7 @@ if __name__ == '__main__':
     #state transitions
     states.add_transition(idx_startup, transition_tagged, idx_wander)
     states.add_transition(idx_wander, transition_face_found, idx_engage)
+    states.add_transition(idx_wander, transition_timeout("timeout_tmp"), idx_startup)
     states.add_transition(idx_engage, transition_sequence_complete, idx_play)
     states.add_transition(idx_play, transition_tagged, idx_sleep)
     states.add_transition(idx_play, transition_timeout("timeout_play"), idx_wander)
@@ -789,8 +798,8 @@ if __name__ == '__main__':
     
     
     shared_data = Manager().dict()
+    shared_data["faces"] = []
     Thread(target=Desktop.listen_for_faces).start()
-
 
     #run loop
     prev_time = time()
