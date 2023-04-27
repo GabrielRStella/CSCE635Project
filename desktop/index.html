@@ -15499,7 +15499,7 @@
             // 
             // 
             const parameters = {
-                address: "192.168.192.182"/*UNQUE_ID_191093889137898240_address*/,
+                address: "192.168.196.182"/*UNQUE_ID_191093889137898240_address*/,
                 port: 9093/*UNQUE_ID_19827378957898240_port*/,
                 defaultPort: 9093,
                 audioBufferSize: 2048,
@@ -15583,15 +15583,16 @@
             window.addEventListener('devicemotion', debounce({
                 delay: 100,
                 func:  ({acceleration})=>{
-                    sendMessage(`acceleration: ${acceleration}`)
-                    if (WebsocketConnecter.websocket) {
-                        WebsocketConnecter.websocket.send(JSON.stringify({acceleration}))
-                    }
+                    // sendMessage(`acceleration: ${JSON.stringify(acceleration)}`)
+                    // if (WebsocketConnecter.websocket) {
+                    //     WebsocketConnecter.websocket.send(JSON.stringify({acceleration}))
+                    // }
                 },
             }), false)
             async function afterWebsocketConnected() {
                 console.log("websocket connected")
                 WebsocketConnecter.websocket.addEventListener('error', (error)=>{
+                    sendMessage(`ERROR: cant connection to websocket, reload page to retry`)
                     console.error(error)
                 })
                 
@@ -15613,6 +15614,7 @@
 
                 if (Face.actions) {
                     if (data.showConfusion) {
+                        sendMessage(`showing confusion`)
                         Face.actions.showConfusion()
                     }
                     if (data.showScared) {
@@ -15625,6 +15627,7 @@
                         }, 2000)
                     }
                     if (data.relax) {
+                        sendMessage(`relaxing`)
                         Face.actions.relax()
                     }
                 }
@@ -15717,6 +15720,7 @@
                         setTimeout(cascadingCallback, parameters.frameSendRate)
                     }
                     killCameraStream = false
+                    cascadingCallback()
                 }
                 CameraSwitch.switchInput.addEventListener(
                     "click",

@@ -147,10 +147,22 @@ class GPIO:
 #since it's used by 2-3 separate objects: face sensor, sound sensor, expression effector
 ###############################################################################
 
+def shift_towards(*, new_value, old_value, proportion):
+    if proportion == 1:
+        return new_value
+    if proportion == 0:
+        return old_value
+    
+    difference = new_value - old_value
+    amount = difference * proportion
+    return old_value+amount
+
 @singleton
 class Desktop:
     url = f"wss://{config.desktop.ip_address}:{config.desktop.web_socket_port}/pi"
     websocket = None
+    extrapolation_cap = 4
+    recent_faces = [None]
     
     @staticmethod
     def tell_face(data):
@@ -166,7 +178,59 @@ class Desktop:
     
     @staticmethod
     def query_faces():
-        return shared_data["faces"]
+        recent_faces = list(Desktop.recent_faces)
+        Desktop.recent_faces.append(None)
+        Desktop.recent_faces = Desktop.recent_faces[-(3 + Desktop.extrapolation_cap*2):] # three is min for performing extrapolation
+        if recent_faces[-1] != None:
+            return shared_data["faces"]
+        else:
+            recent_faces_copy = list(recent_faces)
+            none_count = 0
+            while True:
+                if recent_faces_copy[-1] == None:
+                    none_count += 1
+                    recent_faces_copy.pop()
+                else:
+                    break
+            if none_count > Desktop.extrapolation_cap:
+                return []
+            else:
+                if len(recent_faces_copy) >= 2:
+                    # first reference
+                    recent_reference = recent_faces_copy.pop()
+                    if len(recent_reference) == 0:
+                        return []
+                    recent_face = recent_reference[0]
+                    timestep_gap = 1
+                    while len(recent_faces_copy) > 0:
+                        if recent_faces_copy[-1] == None:
+                            timestep_gap += 1
+                            recent_faces_copy.pop()
+                        else:
+                            break
+                    # no ealier reference
+                    if len(recent_faces_copy) == 0:
+                        return []
+                    
+                    # no faces
+                    if len(recent_faces_copy[-1]) == 0:
+                        return [
+                            {
+                                **recent_face,
+                                "relative_x": recent_face["relative_x"]/none_count, # 1/2 x value
+                            }
+                        ]
+                    older_face = recent_faces_copy[-1][0]
+                    
+                    change = recent_face["relative_x"] - older_face["relative_x"]
+                    return [
+                        {
+                            **recent_face,
+                            "relative_x": recent_face["relative_x"] + (change/timestep_gap)*none_count,
+                        }
+                    ]
+                        
+            return []
     
     @staticmethod
     def listen_for_faces(*args):
@@ -178,6 +242,7 @@ class Desktop:
                         message = websocket.recv()
                         try:
                             shared_data["faces"] = json.loads(message)
+                            Desktop.recent_faces.append(shared_data["faces"])
                         except Exception as error:
                             pass
             except Exception as error:
@@ -312,6 +377,7 @@ class SensorFace(Sensor):
     def __init__(self, server_connection):
         self.server_connection = server_connection
         self.heading = None #angle to face, in degrees, +/-
+        self.prev = None
 
     def update(self, dt):
         """

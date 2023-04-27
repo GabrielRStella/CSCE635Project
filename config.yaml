@@ -19,6 +19,6 @@
             phone:
                 fov: 76 # degrees
             desktop:
-                ip_address: 192.168.192.182 # UNIQUE_ID_fo4i3jf84309583
+                ip_address: 192.168.196.182 # UNIQUE_ID_fo4i3jf84309583
                 file_server_port: 7071
                 web_socket_port:  9093

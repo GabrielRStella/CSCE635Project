@@ -245,7 +245,7 @@ async def main():
         keyfile=info.absolute_path_to.file_server_private_key,
         password=None,
     )
-    server2 = await serve(socket_response, config.desktop.ip_address, config.desktop.web_socket_port, ssl=ssl_context)
+    server2 = await serve(socket_response, config.desktop.ip_address, config.desktop.web_socket_port, ssl=ssl_context, max_size=2*2*1048576, max_queue=5,)
     print(f"socket now available: https://{config.desktop.ip_address}:{config.desktop.web_socket_port}")
     await server2.serve_forever()
 
