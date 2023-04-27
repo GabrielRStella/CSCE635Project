@@ -15499,12 +15499,12 @@
             // 
             // 
             const parameters = {
-                address: "192.168.192.182"/*UNQUE_ID_191093889137898240_address*/,
+                address: "192.168.43.229"/*UNQUE_ID_191093889137898240_address*/,
                 port: 9093/*UNQUE_ID_19827378957898240_port*/,
                 defaultPort: 9093,
                 audioBufferSize: 2048,
                 videoWidth: 640,
-                frameSendRate: 1000, // every x miliseconds
+                frameSendRate: 200, // every x miliseconds
             }
             const rosTopics = {
                 audioTopic: null,
@@ -15514,6 +15514,7 @@
             var { Column, Row } = await import("https://deno.land/x/good_component@0.1.4/elements.js")
             var { stringToBytes } = await import("https://deno.land/x/binaryify@0.0.7/tools.js")
             var { html } = await import("https://deno.land/x/elementalist@0.5.29/main/deno.js?code")
+            let frameCount = 0
 
             // 
             // Custom elements
@@ -15563,13 +15564,35 @@
                 ],
             ]
             // 
+            // helpers
+            // 
+                function debounce({delay, func}) {
+                    let timeoutId
+                    return function() {
+                        const context = this
+                        const args = arguments
+                        timeoutId && clearTimeout(timeoutId)
+                        timeoutId = setTimeout(() => func.apply(context, args), delay)
+                    }
+                }
+            // 
             // 
             // Events
             // 
             // 
+            window.addEventListener('devicemotion', debounce({
+                delay: 100,
+                func:  ({acceleration})=>{
+                    // sendMessage(`acceleration: ${JSON.stringify(acceleration)}`)
+                    // if (WebsocketConnecter.websocket) {
+                    //     WebsocketConnecter.websocket.send(JSON.stringify({acceleration}))
+                    // }
+                },
+            }), false)
             async function afterWebsocketConnected() {
                 console.log("websocket connected")
                 WebsocketConnecter.websocket.addEventListener('error', (error)=>{
+                    sendMessage(`ERROR: cant connection to websocket, reload page to retry`)
                     console.error(error)
                 })
                 
@@ -15591,6 +15614,7 @@
 
                 if (Face.actions) {
                     if (data.showConfusion) {
+                        sendMessage(`showing confusion`)
                         Face.actions.showConfusion()
                     }
                     if (data.showScared) {
@@ -15603,6 +15627,7 @@
                         }, 2000)
                     }
                     if (data.relax) {
+                        sendMessage(`relaxing`)
                         Face.actions.relax()
                     }
                 }
@@ -15654,13 +15679,12 @@
                     false
                 )
 
-                let cameraTimer = null
                 let cameraStream = null
+                let killCameraStream = true
                 CameraSwitch.turnOff = async ()=>{
                     hasRunOnce = false
-                    cameraTimer = null
+                    killCameraStream = true
                     cameraStream.stop()
-                    clearInterval(cameraTimer)
                 }
                 CameraSwitch.turnOn = async ()=>{
                     WebsocketConnecter.setupIfNeeded()
@@ -15687,7 +15711,16 @@
                             throw error
                         }
                     }
-                    cameraTimer = setInterval(() => takePicture(), parameters.frameSendRate)
+                    const cascadingCallback = async ()=>{
+                        if (killCameraStream) {
+                            killCameraStream = false
+                            return
+                        }
+                        await takePicture()
+                        setTimeout(cascadingCallback, parameters.frameSendRate)
+                    }
+                    killCameraStream = false
+                    cascadingCallback()
                 }
                 CameraSwitch.switchInput.addEventListener(
                     "click",
@@ -15703,7 +15736,9 @@
 
                 // function that is run by trigger several times a second
                 // takes snapshot of video to canvas, encodes the images as base 64 and sends it to the ROS topic
-                function takePicture() {
+                async function takePicture() {
+                    frameCount+=1
+                    console.log(`frameCount:${frameCount}`)
                     if (!WebsocketConnecter.websocket) {
                         // sendMessage("Trying to take a picture but theres no websocket")
                     } else {
@@ -15712,8 +15747,12 @@
                         // canvas.height = parameters. height
 
                         canvas.getContext("2d").drawImage(video, 0, 0, canvas.width, canvas.height)
-
-                        WebsocketConnecter.websocket.send(canvas.toDataURL("image/png").replace(/^data:image\/png;base64,/, ""))
+                        
+                        try {
+                            await WebsocketConnecter.websocket.send(canvas.toDataURL("image/png").replace(/^data:image\/png;base64,/, ""))
+                        } catch (err) {
+                            sendMessage(`sending message over websocket failed`)
+                        }
                     }
                 }
                 
