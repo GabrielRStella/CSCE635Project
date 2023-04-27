@@ -56,6 +56,9 @@ class Motor:
             self.speed_pin.write(self.spd)
             self.forward_pin.write(self.direction)
             self.backward_pin.write(1 - self.direction)
+            #oops we mounted the motors backward
+            # self.forward_pin.write(1 - self.direction)
+            # self.backward_pin.write(self.direction)
 
 # https://stackoverflow.com/a/14981125
 def eprint(*args, **kwargs):

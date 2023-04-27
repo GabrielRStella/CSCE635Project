@@ -7,7 +7,7 @@
 #imports
 ###############################################################################
 
-from math import floor, sqrt, atan2, pi, tau, dist, fabs, cos, radians
+from math import floor, sqrt, atan2, pi, tau, dist, fabs, sin, cos, radians
 from random import random
 import sys
 import os
@@ -30,7 +30,7 @@ import numpy
 
 from __dependencies__ import websockets
 from __dependencies__.quik_config import find_and_load
-from __dependencies__.blissful_basics import singleton, LazyDict, Warnings, print, arg_maxs, Warnings
+from __dependencies__.blissful_basics import singleton, LazyDict, Warnings, print, arg_max, arg_maxs, Warnings
 from __dependencies__.websockets.sync.client import connect
 
 Warnings.disable()
@@ -129,6 +129,7 @@ class GPIO:
         data = self.proc.stdout.readline()
         # print("read: \"" + str(data) + "\"")
         return [(s == "True") for s in data.split(" ")]
+        # return (False, False)
 
     #write (speed, direction) to motor
     #speedir = signed speed
@@ -141,6 +142,7 @@ class GPIO:
 
     def stop(self):
         self.proc.terminate()
+        # pass
 
 ###############################################################################
 #helper class that manages the pi's connection to the websocket server
@@ -167,6 +169,10 @@ class Desktop:
     @staticmethod
     def query_faces():
         return shared_data["faces"]
+
+    @staticmethod
+    def query_time():
+        return shared_data["time"]
     
     @staticmethod
     def listen_for_faces(*args):
@@ -178,6 +184,7 @@ class Desktop:
                         message = websocket.recv()
                         try:
                             shared_data["faces"] = json.loads(message)
+                            shared_data["time"] = time()
                         except Exception as error:
                             pass
             except Exception as error:
@@ -264,7 +271,7 @@ class SensorDepth(Sensor):
         indices = numpy.arange(0, n)
         angles = numpy.interp(indices, [0, n - 1], [-fov, fov])
         dist_min = 0
-        dist_backup = 750 #this seems to be in mm, but needs to have a pretty high threshold
+        dist_backup = 500 #this seems to be in mm, but needs to have a pretty high threshold
         dist_max = 3000
         mags = numpy.interp(arr, [dist_min, dist_backup, dist_max], [-1, 0, 1])
         #make vectors from mag and rotate by angle, then add them all up
@@ -312,13 +319,19 @@ class SensorFace(Sensor):
     def __init__(self, server_connection):
         self.server_connection = server_connection
         self.heading = None #angle to face, in degrees, +/-
+        self.freshness = 0.1 #frames last 100 ms
 
     def update(self, dt):
         """
         Summary:
             Returns either None or positive/negative degrees
         """
-        faces = self.server_connection.query_faces()
+        #make sure the frame is "fresh enough"
+        t = self.server_connection.query_time()
+        faces = []
+        if(time() - t <= self.freshness):
+            faces = self.server_connection.query_faces()
+        #process it
         if len(faces) == 0:
             self.heading = None
         elif len(faces) == 1:
@@ -347,7 +360,8 @@ class SensorFace(Sensor):
     def get_heading(self):
         if(self.heading is None):
             return (0, 0)
-        theta = deg2rad(self.heading)
+        theta = radians(-self.heading * 3)
+        # print(theta)
         dx = cos(theta)
         dy = sin(theta)
         return (dx, dy)
@@ -383,7 +397,7 @@ class EffectorDrive(Effector):
 
     def push_heading(self, delta):
         prev = self.heading
-        self.heading = (prev[0] + delta[0], prev[1] + delta[1])
+        self.heading = (prev[0] + delta[0], prev[1] + delta[1] + 0.6)
 
     def update(self, dt):
         #cap heading to at most 100% speed
@@ -396,11 +410,15 @@ class EffectorDrive(Effector):
         #convert to left/right speed and direction
         heading_speed = sqrt(dx * dx + dy * dy)
         heading_angle = atan2(dy, dx)
+        # print(dy)
         motor_spd_left = heading_speed * cos(heading_angle + pi / 4)
         motor_spd_right = heading_speed * cos(heading_angle - pi / 4)
         #push to motors/gpio
         self.gpio.write(0, motor_spd_left)
         self.gpio.write(1, motor_spd_right)
+        #flipped left/right
+        # self.gpio.write(1, motor_spd_left)
+        # self.gpio.write(0, motor_spd_right)
         #clear accumulated heading
         #hypothetically this could also do some running average to smooth out motor commands
         #or it could happen directly in the motor class
@@ -600,7 +618,7 @@ class BehaviorManagerSeq(object):
 
     #is the sequence done?
     def is_complete(self):
-        self.index >= len(self.sequence)
+        return self.index >= len(self.sequence)
 
 class GenericBehaviorSeq(object):
     def __init__(self, name):
@@ -646,29 +664,32 @@ class BehaviorMove(GenericBehaviorIRM):
         heading = (0, self.rotation_dir)
         if(self.time_rotating > 0):
             self.time_rotating -= dt
+            # if(self.time_rotating <= 0):
+            #     print("turnaround done")
         else:
             heading = robot.sensors["depth"].get_heading()
             if(heading[0] < 0.1):
                 self.time_rotating = random() * 2 + 1
                 self.rotation_dir = 1 if random() < 0.5 else -1
+                # print("turnaround")
         robot.effectors["drive"].push_heading(heading)
 
 #Approach: when a face is detected, add heading/impulse towards the face
-class BehaviorApproach(GenericBehaviorIRM):
-    def __init__(self):
-        super().__init__("approach")
+# class BehaviorApproach(GenericBehaviorIRM):
+#     def __init__(self):
+#         super().__init__("approach")
 
-    def releaser(self, robot:RoboController):
-        return False
+#     def releaser(self, robot:RoboController):
+#         return False
 
-    def callback_released(self, robot:RoboController):
-        pass
+#     def callback_released(self, robot:RoboController):
+#         pass
 
-    def callback_inhibited(self, robot:RoboController):
-        pass
+#     def callback_inhibited(self, robot:RoboController):
+#         pass
 
-    def update(self, robot:RoboController, dt):
-        pass
+#     def update(self, robot:RoboController, dt):
+#         pass
         
 '''
 TODO irm
@@ -677,22 +698,48 @@ TODO irm
 ---but this may cause even more stuck-ness, since it'll potentially re-introduce "corner" cases
 '''
 
+#Align: align to person for bumping
+class BehaviorAlign(GenericBehaviorSeq):
+    def __init__(self):
+        super().__init__("align")
+
+    def is_complete(self, robot:RoboController):
+        # return False
+        depth_dist, depth_angle = robot.sensors["depth"].get_heading()
+        return depth_dist < 0.3 #if it's close to something
+
+    def callback_released(self, robot:RoboController):
+        # robot.effectors["expressions"].show_happy()
+        pass
+
+    def callback_inhibited(self, robot:RoboController):
+        # robot.effectors["expressions"].relax()
+        pass
+
+    def update(self, robot:RoboController, dt):
+        heading = robot.sensors["face"].get_heading()
+        # print("align heading:", heading)
+        robot.effectors["drive"].push_heading(heading)
+
 #Bump: move towards person and bump them
 class BehaviorBump(GenericBehaviorSeq):
     def __init__(self):
         super().__init__("bump")
 
     def is_complete(self, robot:RoboController):
-        return True
+        return robot.sensors["timers"].check_timer_alert("timer_bump")
 
     def callback_released(self, robot:RoboController):
-        pass
+        robot.sensors["timers"].start_timer("timer_bump", 2)
 
     def callback_inhibited(self, robot:RoboController):
         pass
 
     def update(self, robot:RoboController, dt):
-        pass
+        # pass
+        # heading = robot.sensors["face"].get_heading()
+        # print("bump:", heading)
+        robot.effectors["drive"].push_heading((1, 0))
         
 #TurnAround: set a random-length timer and a random direction, then turn
 class BehaviorTurnAround(GenericBehaviorSeq):
@@ -732,6 +779,20 @@ def cb_restart_sequence(state, robot):
 def cb_start_timer(name, time):
     return lambda state, robot: robot.sensors["timers"].start_timer(name, time)
 
+def cb_enter_wander(state, robot):
+    # robot.effectors["expressions"].relax()
+    # sleep(0.01)
+    # robot.effectors["expressions"].show_confusion()
+    pass
+
+def cb_enter_play(state, robot):
+    # robot.effectors["expressions"].show_scared()
+    cb_start_timer("timeout_play", param_timeout_play)(state, robot)
+
+def cb_exit_play(state, robot):
+    # robot.effectors["expressions"].relax()
+    cb_disable_behaviors(state, robot)
+
 #transition if timer goes off
 def transition_timeout(name):
     return lambda state, robot: robot.sensors["timers"].check_timer_alert(name)
@@ -746,7 +807,7 @@ def transition_face_found(state, robot):
 
 #transition from play -> sleep when button is pressed
 def transition_tagged(state, robot):
-    return robot.sensors["button"].is_down()
+    return robot.sensors["button"].was_clicked()
 
 ###############################################################################
 #main run loop
@@ -764,8 +825,9 @@ if __name__ == '__main__':
     #
     behaviors_wander = BehaviorManagerIRM()
     behaviors_wander.add_behavior(BehaviorMove())
-    behaviors_wander.add_behavior(BehaviorApproach())
+    # behaviors_wander.add_behavior(BehaviorApproach())
     behaviors_engage = BehaviorManagerSeq()
+    behaviors_engage.add_behavior(BehaviorAlign())
     behaviors_engage.add_behavior(BehaviorBump())
     behaviors_engage.add_behavior(BehaviorTurnAround())
     behaviors_play = BehaviorManagerIRM()
@@ -777,11 +839,12 @@ if __name__ == '__main__':
     #states (first is initial state)
     state_startup = State("startup", behaviors_startup)
     idx_startup = states.add_state(state_startup)
-    state_wander = State("wander", behaviors_wander, on_enter=cb_start_timer("timeout_tmp", 10), on_exit=cb_disable_behaviors)
+    # state_wander = State("wander", behaviors_wander, on_enter=cb_start_timer("timeout_tmp", 10), on_exit=cb_disable_behaviors)
+    state_wander = State("wander", behaviors_wander, on_enter=cb_enter_wander, on_exit=cb_disable_behaviors)
     idx_wander = states.add_state(state_wander)
     state_engage = State("engage", behaviors_engage, on_enter=cb_restart_sequence)
     idx_engage = states.add_state(state_engage)
-    state_play = State("play", behaviors_play, on_enter=cb_start_timer("timeout_play", param_timeout_play), on_exit=cb_disable_behaviors)
+    state_play = State("play", behaviors_play, on_enter=cb_enter_play, on_exit=cb_exit_play)
     idx_play = states.add_state(state_play)
     state_sleep = State("sleep", behaviors_sleep, on_enter=cb_start_timer("timeout_sleep", param_timeout_sleep), on_exit=cb_disable_behaviors)
     idx_sleep = states.add_state(state_sleep)
@@ -790,15 +853,18 @@ if __name__ == '__main__':
     #state transitions
     states.add_transition(idx_startup, transition_tagged, idx_wander)
     states.add_transition(idx_wander, transition_face_found, idx_engage)
-    states.add_transition(idx_wander, transition_timeout("timeout_tmp"), idx_startup)
+    # states.add_transition(idx_wander, transition_timeout("timeout_tmp"), idx_startup)
     states.add_transition(idx_engage, transition_sequence_complete, idx_play)
     states.add_transition(idx_play, transition_tagged, idx_sleep)
-    states.add_transition(idx_play, transition_timeout("timeout_play"), idx_wander)
+    states.add_transition(idx_play, transition_timeout("timeout_play"), idx_sleep)
     states.add_transition(idx_sleep, transition_timeout("timeout_sleep"), idx_wander)
     
+    #TMP
+    # states.current_state = idx_engage
     
     shared_data = Manager().dict()
     shared_data["faces"] = []
+    shared_data["time"] = -1
     Thread(target=Desktop.listen_for_faces).start()
 
     #run loop
