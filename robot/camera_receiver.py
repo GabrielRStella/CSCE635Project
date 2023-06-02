@@ -60,48 +60,18 @@ def frame_generator(*, path_to_capturer_mmap_executable, camera_stream_settings,
     return generator
 
 
-# NOTE: currently this function does not work as intended
-def attempt_auto_detect_formats(path_to_capturer_mmap_executable, file_path_of_camera):
-    viable_formats = []
-    for width, height in CameraStreamSettings.some_available_window_sizes:
-        for each_format in CameraStreamSettings.available_formats:
-            try:
-                print(f'''trying:  width={width}, height={height}, format={repr(each_format)}''')
-                camera_stream_settings = CameraStreamSettings(
-                    height=height,
-                    width=width,
-                    format=each_format,
-                )
-                generator = frame_generator(
-                    path_to_capturer_mmap_executable=path_to_capturer_mmap_executable,
-                    file_path_of_camera=file_path_of_camera,
-                    camera_stream_settings=camera_stream_settings,
-                )
-                for frame_as_bytes in generator:
-                    viable_formats.append(dict(width=width, height=height, format=each_format))
-                    generator.kill()
-                    break
-            except Exception as error:
-                print(f'''    seems unviable because of: {error}''')
-    return viable_formats
-
-viable_formats = attempt_auto_detect_formats(
+import numpy
+# use the following command to find your camera's settings: v4l2-ctl -d /dev/video0 --list-formats-ext
+camera_stream_settings = CameraStreamSettings(
+    height=270,
+    width=480,
+    format="RGB565" # "YUV420", "RGB565", "RGB32", or "Z16 (GS)" <- last one is used for depth cameras
+)
+for frame_as_bytes in frame_generator(
     path_to_capturer_mmap_executable="./capturer_mmap",
     file_path_of_camera="/dev/video0",
-)
-print(f'''viable_formats = {viable_formats}''')
-
-# import numpy
-# camera_stream_settings = CameraStreamSettings(
-#     height=270,
-#     width=480,
-#     format="RGB565" # "YUV420", "RGB565", "RGB32", or "Z16 (GS)" <- last one is used for depth cameras
-# )
-# for frame_as_bytes in frame_generator(
-#     path_to_capturer_mmap_executable="./capturer_mmap",
-#     file_path_of_camera="/dev/video0",
-#     camera_stream_settings=camera_stream_settings,
-# ):
-#     uint8_array = numpy.frombuffer(frame_as_bytes, dtype=numpy.uint8)
-#     frame = uint8_array.reshape((camera_stream_settings.width, camera_stream_settings.height, -1))
+    camera_stream_settings=camera_stream_settings,
+):
+    uint8_array = numpy.frombuffer(frame_as_bytes, dtype=numpy.uint8)
+    frame = uint8_array.reshape((camera_stream_settings.width, camera_stream_settings.height, -1))
     
