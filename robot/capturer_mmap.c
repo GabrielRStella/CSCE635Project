@@ -56,12 +56,11 @@ static int xioctl (int fd, int request, void *arg)
 }
 
 //read one frame from memory and throws the data to standard output
-static int read_frame  (int * fd, int width, int height, int * n_buffers, 
-						struct buffer * buffers, int pixel_format)
+static int read_frame  (int * fd, int width, int height, int * n_buffers,  struct buffer * buffers, int pixel_format)
 {
 	struct v4l2_buffer buf;//needed for memory mapping
 	unsigned int i;
-	unsigned int Bpf;//bytes per frame
+	unsigned int bytes_per_frame;
 
 	CLEAR (buf);
 
@@ -87,22 +86,22 @@ static int read_frame  (int * fd, int width, int height, int * n_buffers,
 	switch (pixel_format) 
 	{  
 		case 0: //YUV420
-			Bpf = width*height*12/8;           
+			bytes_per_frame = width*height*12/8;           
 			break;
 		case 1: //RGB565
-			Bpf = width*height*2;
+			bytes_per_frame = width*height*2;
 			break;
 		case 2: //RGB32
-			Bpf = width*height*4;
+			bytes_per_frame = width*height*4;
 		case 3: //Z16 (GS)
-			Bpf = width*height*2;
+			bytes_per_frame = width*height*2;
 		break;
 	}
 
 	int ret;
 	//writing to standard output
-    // fprintf(stderr, "Writing %d bytes\n", Bpf);
-	ret = write(STDOUT_FILENO, buffers[buf.index].start, Bpf);
+    // fprintf(stderr, "Writing %d bytes\n", bytes_per_frame);
+	ret = write(STDOUT_FILENO, buffers[buf.index].start, bytes_per_frame);
     // fprintf(stderr, "Wrote %d bytes\n", ret);
 	if (-1 == xioctl (*fd, VIDIOC_QBUF, &buf))
 		errno_exit ("VIDIOC_QBUF");
